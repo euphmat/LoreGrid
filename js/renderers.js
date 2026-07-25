@@ -290,17 +290,39 @@ function dbListPickerMarkup(column, item, value) {
         <form class="db-list-quick-add" data-db-list-quick-add>
           <span class="db-list-quick-add-title">新しい項目を追加</span>
           <div class="db-list-quick-add-controls">
-            <label
-              class="db-list-quick-color"
-              title="項目の色を選択"
-              aria-label="項目の色を選択"
-            >
+            <div class="db-list-quick-color-picker">
+              <button
+                type="button"
+                class="db-list-quick-color"
+                data-db-list-color-trigger
+                style="--selected-color:${escapeHTML(newOptionColor)}"
+                title="32色から項目の色を選択"
+                aria-label="32色から項目の色を選択"
+                aria-expanded="false"
+              ><span aria-hidden="true"></span></button>
+              <div
+                class="db-list-quick-palette is-hidden"
+                data-db-list-quick-palette
+                role="group"
+                aria-label="項目カラー32色"
+              >
+                ${COLOR_PALETTE.map(
+                  (color) => `
+                    <button
+                      type="button"
+                      data-db-list-new-color-choice="${escapeHTML(color)}"
+                      style="--swatch-color:${escapeHTML(color)}"
+                      aria-label="${escapeHTML(color)}を選択"
+                      aria-pressed="${String(color === newOptionColor)}"
+                    ></button>`,
+                ).join("")}
+              </div>
               <input
-                type="color"
+                type="hidden"
                 value="${escapeHTML(newOptionColor)}"
                 data-db-list-new-color
               />
-            </label>
+            </div>
             <input
               type="text"
               maxlength="40"

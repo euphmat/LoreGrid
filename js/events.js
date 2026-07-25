@@ -10,6 +10,12 @@ dom.projectList.addEventListener("click", (event) => {
 dom.tableBody.addEventListener("click", (event) => {
   if (event.target.closest("[data-db-list-quick-add]")) {
     event.stopPropagation();
+    const colorChoice = event.target.closest(
+      "[data-db-list-new-color-choice]",
+    );
+    const colorTrigger = event.target.closest("[data-db-list-color-trigger]");
+    if (colorChoice) chooseDatabaseListQuickColor(colorChoice);
+    else if (colorTrigger) toggleDatabaseListQuickPalette(colorTrigger);
     return;
   }
   const listOption = event.target.closest("[data-db-list-option]");
@@ -84,6 +90,46 @@ dom.tableBody.addEventListener("change", (event) => {
 dom.tableBody.addEventListener("keydown", (event) => {
   const picker = event.target.closest("[data-db-list-picker]");
   if (!picker) return;
+  const paletteChoice = event.target.closest(
+    "[data-db-list-new-color-choice]",
+  );
+  if (paletteChoice) {
+    const paletteChoices = $$(
+      "[data-db-list-new-color-choice]",
+      picker,
+    );
+    const index = paletteChoices.indexOf(paletteChoice);
+    const offsets = {
+      ArrowLeft: -1,
+      ArrowRight: 1,
+      ArrowUp: -8,
+      ArrowDown: 8,
+    };
+    if (offsets[event.key]) {
+      event.preventDefault();
+      const nextIndex =
+        (index + offsets[event.key] + paletteChoices.length) %
+        paletteChoices.length;
+      paletteChoices[nextIndex]?.focus();
+      return;
+    }
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      paletteChoices[event.key === "Home" ? 0 : paletteChoices.length - 1]?.focus();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      const palette = $("[data-db-list-quick-palette]", picker);
+      const colorTrigger = $("[data-db-list-color-trigger]", picker);
+      palette?.classList.add("is-hidden");
+      colorTrigger?.setAttribute("aria-expanded", "false");
+      colorTrigger?.focus();
+      positionDatabaseListMenu(picker);
+      return;
+    }
+  }
   const trigger = event.target.closest("[data-db-list-trigger]");
   const option = event.target.closest("[data-db-list-option]");
   const menuOptions = $$("[data-db-list-option]", picker);

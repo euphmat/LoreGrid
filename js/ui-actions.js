@@ -9,6 +9,11 @@ function closeDatabaseListPickers({ restoreFocus = false } = {}) {
   openPicker.classList.remove("is-open");
   trigger?.setAttribute("aria-expanded", "false");
   $("[data-db-list-menu]", openPicker)?.classList.add("is-hidden");
+  $("[data-db-list-quick-palette]", openPicker)?.classList.add("is-hidden");
+  $("[data-db-list-color-trigger]", openPicker)?.setAttribute(
+    "aria-expanded",
+    "false",
+  );
   if (restoreFocus) trigger?.focus();
 }
 
@@ -18,7 +23,10 @@ function positionDatabaseListMenu(picker) {
   if (!trigger || !menu) return;
   const rect = trigger.getBoundingClientRect();
   const gutter = 8;
-  menu.style.width = `${Math.max(190, rect.width)}px`;
+  menu.style.width = `${Math.min(
+    window.innerWidth - gutter * 2,
+    Math.max(240, rect.width),
+  )}px`;
   menu.style.left = `${Math.min(
     window.innerWidth - menu.offsetWidth - gutter,
     Math.max(gutter, rect.left),
@@ -67,6 +75,41 @@ function chooseDatabaseListOption(option) {
       dom.tableBody,
     )?.focus();
   }, 0);
+}
+
+function toggleDatabaseListQuickPalette(trigger) {
+  const picker = trigger?.closest("[data-db-list-picker]");
+  const palette = $("[data-db-list-quick-palette]", picker);
+  if (!picker || !palette) return;
+  const opening = palette.classList.contains("is-hidden");
+  palette.classList.toggle("is-hidden", !opening);
+  trigger.setAttribute("aria-expanded", String(opening));
+  positionDatabaseListMenu(picker);
+  if (opening) {
+    $('[aria-pressed="true"]', palette)?.focus();
+  }
+}
+
+function chooseDatabaseListQuickColor(choice) {
+  const picker = choice?.closest("[data-db-list-picker]");
+  const form = choice?.closest("[data-db-list-quick-add]");
+  const palette = $("[data-db-list-quick-palette]", form);
+  const trigger = $("[data-db-list-color-trigger]", form);
+  const colorInput = $("[data-db-list-new-color]", form);
+  if (!picker || !palette || !trigger || !colorInput) return;
+  const color = normalizePaletteColor(choice.dataset.dbListNewColorChoice);
+  colorInput.value = color;
+  trigger.style.setProperty("--selected-color", color);
+  $$("[data-db-list-new-color-choice]", palette).forEach((swatch) =>
+    swatch.setAttribute(
+      "aria-pressed",
+      String(swatch.dataset.dbListNewColorChoice === color),
+    ),
+  );
+  palette.classList.add("is-hidden");
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.focus();
+  positionDatabaseListMenu(picker);
 }
 
 function openCommand(initial = "") {

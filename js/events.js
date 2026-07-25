@@ -156,6 +156,8 @@ dom.inspectorContent.addEventListener("input", (event) => {
 dom.inspectorContent.addEventListener("change", (event) => {
   if (event.target.matches("[data-inspector-organisation]")) {
     updateInspectorOrganisation(event.target.checked);
+  } else if (event.target.matches("[data-inspector-membership]")) {
+    updateInspectorMembership(event.target.value);
   } else if (
     event.target.matches(
       "select[data-inspector-field], select[data-inspector-custom], input[type='checkbox'][data-inspector-custom]",
@@ -191,6 +193,7 @@ $$(".view-button").forEach((button) =>
   button.addEventListener("click", () => setView(button.dataset.view)),
 );
 $("#add-entity-button").addEventListener("click", createEntityInInspector);
+$("#board-add-entity-button").addEventListener("click", createEntityInInspector);
 $("#new-project-button").addEventListener("click", () => openProjectModal());
 $("#edit-project-button").addEventListener("click", () => openProjectModal(state.activeProjectId));
 $("#project-banner-file").addEventListener("change", (event) => {

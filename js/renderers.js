@@ -590,6 +590,40 @@ function organisationPaletteMarkup(item) {
     </div>`;
 }
 
+function organisationMembershipMarkup(item) {
+  const organisations = activeProject().entities.filter(
+    (candidate) => candidate.organisation,
+  );
+  if (!organisations.length) return "";
+  const excludedIds = item.organisation ? groupDescendantIds(item.id) : new Set();
+  const choices = organisations
+    .filter(
+      (candidate) =>
+        candidate.id !== item.id &&
+        !excludedIds.has(candidate.id),
+    )
+    .sort((a, b) => groupDepth(a) - groupDepth(b) || a.title.localeCompare(b.title, "ja"));
+  return `
+    <section class="inspector-section organisation-membership">
+      <label class="inspector-field">
+        <span>所属</span>
+        <select data-inspector-membership>
+          <option value="">所属なし</option>
+          ${choices
+            .map(
+              (group) => `
+                <option
+                  value="${escapeHTML(group.id)}"
+                  ${item.parentGroupId === group.id ? "selected" : ""}
+                >${escapeHTML(`${"— ".repeat(groupDepth(group))}${group.title}`)}</option>`,
+            )
+            .join("")}
+        </select>
+      </label>
+      <p>選択したグループ内に固定されます。外へ出す場合は「所属なし」を選択してください。</p>
+    </section>`;
+}
+
 function renderInspector() {
   const item = activeEntity();
   dom.app.classList.toggle("inspector-open", Boolean(item));
@@ -631,6 +665,7 @@ function renderInspector() {
         <span>名称</span>
         <input data-inspector-field="title" value="${escapeHTML(item.title)}" maxlength="80" />
       </label>
+      ${organisationMembershipMarkup(item)}
       <section class="inspector-section organisation-settings">
         <label class="inspector-check organisation-toggle">
           <input type="checkbox" data-inspector-organisation ${item.organisation ? "checked" : ""} />
@@ -708,6 +743,7 @@ function renderViewState() {
   dom.databaseView.classList.toggle("is-hidden", !database);
   dom.boardView.classList.toggle("is-hidden", database);
   $("#board-zoom-controls").classList.toggle("is-hidden", database);
+  $("#board-add-entity-button").classList.toggle("is-hidden", database);
   $$(".view-button").forEach((button) =>
     button.classList.toggle("is-active", button.dataset.view === state.settings.view),
   );

@@ -229,6 +229,22 @@
   margin-top: 14px;
 }
 
+.organisation-membership {
+  margin-top: 14px;
+  padding-bottom: 13px;
+}
+
+.organisation-membership .inspector-field {
+  margin-top: 0;
+}
+
+.organisation-membership p {
+  margin-top: 7px;
+  color: var(--ink-faint);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
 .organisation-toggle {
   position: relative;
   align-items: center;

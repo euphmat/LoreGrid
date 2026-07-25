@@ -149,6 +149,113 @@ function itemBoardSize(item) {
   };
 }
 
+function parentGroupFor(item) {
+  const parent = getEntityById(item.parentGroupId);
+  return parent?.organisation && parent.id !== item.id ? parent : null;
+}
+
+function itemMovementBounds(item) {
+  const size = itemBoardSize(item);
+  const parent = parentGroupFor(item);
+  if (!parent) {
+    return {
+      minX: 0,
+      minY: 0,
+      maxX: Math.max(0, BOARD_WIDTH - size.width),
+      maxY: Math.max(0, BOARD_HEIGHT - size.height),
+    };
+  }
+  const minX = parent.x + 12;
+  const minY = parent.y + 42;
+  return {
+    minX,
+    minY,
+    maxX: Math.max(minX, parent.x + parent.groupWidth - 12 - size.width),
+    maxY: Math.max(minY, parent.y + parent.groupHeight - 12 - size.height),
+  };
+}
+
+function moveItemAndDescendants(item, x, y) {
+  const nextX = Math.round(x);
+  const nextY = Math.round(y);
+  const offsetX = nextX - item.x;
+  const offsetY = nextY - item.y;
+  item.x = nextX;
+  item.y = nextY;
+  if (!item.organisation || (!offsetX && !offsetY)) return;
+  groupDescendantIds(item.id).forEach((id) => {
+    const descendant = getEntityById(id);
+    if (!descendant) return;
+    descendant.x = Math.round(descendant.x + offsetX);
+    descendant.y = Math.round(descendant.y + offsetY);
+  });
+}
+
+function keepItemInsideParent(item) {
+  if (!parentGroupFor(item)) return false;
+  const bounds = itemMovementBounds(item);
+  const nextX = Math.max(bounds.minX, Math.min(bounds.maxX, item.x));
+  const nextY = Math.max(bounds.minY, Math.min(bounds.maxY, item.y));
+  const changed = nextX !== item.x || nextY !== item.y;
+  if (changed) moveItemAndDescendants(item, nextX, nextY);
+  return changed;
+}
+
+function ensureGroupCanContain(group, member) {
+  if (!group?.organisation || !member) return false;
+  const memberSize = itemBoardSize(member);
+  const nextWidth = Math.min(
+    1200,
+    Math.max(group.groupWidth, memberSize.width + 24),
+  );
+  const nextHeight = Math.min(
+    850,
+    Math.max(group.groupHeight, memberSize.height + 54),
+  );
+  let changed =
+    nextWidth !== group.groupWidth ||
+    nextHeight !== group.groupHeight;
+  group.groupWidth = nextWidth;
+  group.groupHeight = nextHeight;
+  const parent = parentGroupFor(group);
+  if (parent) {
+    changed = ensureGroupCanContain(parent, group) || changed;
+    changed = keepItemInsideParent(group) || changed;
+  } else {
+    const bounds = itemMovementBounds(group);
+    const nextX = Math.max(bounds.minX, Math.min(bounds.maxX, group.x));
+    const nextY = Math.max(bounds.minY, Math.min(bounds.maxY, group.y));
+    if (nextX !== group.x || nextY !== group.y) {
+      moveItemAndDescendants(group, nextX, nextY);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function minimumGroupSizeForMembers(group) {
+  return activeProject().entities
+    .filter((candidate) => candidate.parentGroupId === group.id)
+    .reduce(
+      (minimum, member) => {
+        const size = itemBoardSize(member);
+        minimum.width = Math.max(minimum.width, size.width + 24);
+        minimum.height = Math.max(minimum.height, size.height + 54);
+        return minimum;
+      },
+      { width: 240, height: 170 },
+    );
+}
+
+function keepGroupMembersContained(group) {
+  activeProject().entities
+    .filter((candidate) => candidate.parentGroupId === group.id)
+    .forEach((member) => {
+      keepItemInsideParent(member);
+      if (member.organisation) keepGroupMembersContained(member);
+    });
+}
+
 function containingGroupFor(item) {
   const size = itemBoardSize(item);
   const centerX = item.x + size.width / 2;
@@ -179,11 +286,15 @@ function updateEntityGroupMembership(item) {
   const nextParentId = group?.id || "";
   const changed = item.parentGroupId !== nextParentId;
   item.parentGroupId = nextParentId;
+  if (group) {
+    ensureGroupCanContain(group, item);
+    keepItemInsideParent(item);
+  }
   return changed;
 }
 
 function highlightGroupDropTarget(item) {
-  const target = containingGroupFor(item);
+  const target = parentGroupFor(item) || containingGroupFor(item);
   $$("[data-organisation-group]", dom.boardCards).forEach((group) =>
     group.classList.toggle("is-drop-target", group.dataset.boardId === target?.id),
   );
@@ -213,7 +324,7 @@ function beginBoardDrag(event, card) {
   const startY = event.clientY;
   const originX = item.x;
   const originY = item.y;
-  const size = itemBoardSize(item);
+  const bounds = itemMovementBounds(item);
   const descendants = item.organisation
     ? [...groupDescendantIds(item.id)]
         .map((id) => getEntityById(id))
@@ -229,12 +340,12 @@ function beginBoardDrag(event, card) {
 
   const move = (moveEvent) => {
     const x = Math.max(
-      0,
-      Math.min(BOARD_WIDTH - size.width, originX + (moveEvent.clientX - startX) / zoom),
+      bounds.minX,
+      Math.min(bounds.maxX, originX + (moveEvent.clientX - startX) / zoom),
     );
     const y = Math.max(
-      0,
-      Math.min(BOARD_HEIGHT - size.height, originY + (moveEvent.clientY - startY) / zoom),
+      bounds.minY,
+      Math.min(bounds.maxY, originY + (moveEvent.clientY - startY) / zoom),
     );
     item.x = Math.round(x);
     item.y = Math.round(y);
@@ -262,7 +373,9 @@ function beginBoardDrag(event, card) {
     clearGroupDropTargets();
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", end);
-    const membershipChanged = updateEntityGroupMembership(item);
+    const membershipChanged = parentGroupFor(item)
+      ? false
+      : updateEntityGroupMembership(item);
     item.updatedAt = now();
     updateProjectTimestamp();
     renderBoard();
@@ -271,7 +384,9 @@ function beginBoardDrag(event, card) {
         ? item.parentGroupId
           ? "項目をOrganisationグループへ移動しました"
           : "項目をOrganisationグループから取り出しました"
-        : "ボードの配置を保存しました",
+        : item.parentGroupId
+          ? "所属グループ内の配置を保存しました"
+          : "ボードの配置を保存しました",
     );
   };
   window.addEventListener("pointermove", move);
@@ -304,8 +419,10 @@ function beginGroupResize(event, handle) {
     width: item.groupWidth,
     height: item.groupHeight,
   };
-  const minimumWidth = 240;
-  const minimumHeight = 170;
+  const minimumSize = minimumGroupSizeForMembers(item);
+  const minimumWidth = minimumSize.width;
+  const minimumHeight = minimumSize.height;
+  const parent = parentGroupFor(item);
   card.classList.add("is-resizing");
   handle.setPointerCapture?.(event.pointerId);
 
@@ -330,6 +447,22 @@ function beginGroupResize(event, handle) {
       y = Math.max(0, Math.min(origin.y + origin.height - minimumHeight, origin.y + dy));
       height = origin.height + (origin.y - y);
     }
+    if (parent) {
+      const minX = parent.x + 12;
+      const minY = parent.y + 42;
+      const maxRight = parent.x + parent.groupWidth - 12;
+      const maxBottom = parent.y + parent.groupHeight - 12;
+      if (x < minX) {
+        width -= minX - x;
+        x = minX;
+      }
+      if (y < minY) {
+        height -= minY - y;
+        y = minY;
+      }
+      width = Math.min(width, maxRight - x);
+      height = Math.min(height, maxBottom - y);
+    }
     item.x = Math.round(x);
     item.y = Math.round(y);
     item.groupWidth = Math.round(width);
@@ -345,10 +478,8 @@ function beginGroupResize(event, handle) {
     card.classList.remove("is-resizing");
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", end);
-    activeProject().entities
-      .filter((candidate) => candidate.id !== item.id)
-      .forEach((candidate) => updateEntityGroupMembership(candidate));
-    updateEntityGroupMembership(item);
+    keepItemInsideParent(item);
+    keepGroupMembersContained(item);
     item.updatedAt = now();
     updateProjectTimestamp();
     renderBoard();

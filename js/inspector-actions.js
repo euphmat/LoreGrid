@@ -46,15 +46,44 @@ function updateInspectorOrganisation(enabled) {
       if (candidate.parentGroupId === item.id) candidate.parentGroupId = "";
     });
   }
-  activeProject().entities
-    .filter((candidate) => candidate.id !== item.id)
-    .forEach((candidate) => updateEntityGroupMembership(candidate));
+  const parent = parentGroupFor(item);
+  if (parent) ensureGroupCanContain(parent, item);
+  keepItemInsideParent(item);
+  if (enabled) keepGroupMembersContained(item);
   item.updatedAt = now();
   updateProjectTimestamp();
   renderDatabase();
   renderBoard();
   renderInspector();
   markChanged(enabled ? "Organisationを有効にしました" : "Organisationを無効にしました");
+}
+
+function updateInspectorMembership(groupId) {
+  const item = activeEntity();
+  if (!item) return;
+  const excludedIds = item.organisation ? groupDescendantIds(item.id) : new Set();
+  const group = getEntityById(groupId);
+  const nextParentId =
+    group?.organisation &&
+    group.id !== item.id &&
+    !excludedIds.has(group.id)
+      ? group.id
+      : "";
+  item.parentGroupId = nextParentId;
+  if (group && nextParentId) {
+    ensureGroupCanContain(group, item);
+    keepItemInsideParent(item);
+  }
+  item.updatedAt = now();
+  updateProjectTimestamp();
+  renderBoard();
+  renderInspector();
+  markChanged(nextParentId ? "所属グループを変更しました" : "所属を解除しました");
+  toast(
+    nextParentId
+      ? `「${group.title}」に所属しました。`
+      : "所属を解除しました。",
+  );
 }
 
 function setOrganisationColor(color) {

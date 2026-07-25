@@ -209,8 +209,12 @@
     const activeProjectId = projects.some((p) => p.id === candidate.activeProjectId)
       ? candidate.activeProjectId
       : projects[0].id;
-    const settings = { ...defaults, ...(candidate.settings || {}) };
-    delete settings.typeFilter;
+    const settings = { ...defaults };
+    Object.keys(defaults).forEach((key) => {
+      if (candidate.settings?.[key] !== undefined) {
+        settings[key] = candidate.settings[key];
+      }
+    });
     if (settings.sort === "type-asc" || settings.sort === "type-desc") {
       settings.sort = defaults.sort;
     }

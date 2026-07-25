@@ -2,6 +2,73 @@
 
 // Commands, modals, settings, navigation, sorting, and zoom actions.
 
+function closeDatabaseListPickers({ restoreFocus = false } = {}) {
+  const openPicker = $(".db-list-picker.is-open", dom.tableBody);
+  if (!openPicker) return;
+  const trigger = $("[data-db-list-trigger]", openPicker);
+  openPicker.classList.remove("is-open");
+  trigger?.setAttribute("aria-expanded", "false");
+  $("[data-db-list-menu]", openPicker)?.classList.add("is-hidden");
+  if (restoreFocus) trigger?.focus();
+}
+
+function positionDatabaseListMenu(picker) {
+  const trigger = $("[data-db-list-trigger]", picker);
+  const menu = $("[data-db-list-menu]", picker);
+  if (!trigger || !menu) return;
+  const rect = trigger.getBoundingClientRect();
+  const gutter = 8;
+  menu.style.width = `${Math.max(190, rect.width)}px`;
+  menu.style.left = `${Math.min(
+    window.innerWidth - menu.offsetWidth - gutter,
+    Math.max(gutter, rect.left),
+  )}px`;
+  const below = rect.bottom + 6;
+  const above = rect.top - menu.offsetHeight - 6;
+  menu.style.top = `${
+    below + menu.offsetHeight <= window.innerHeight - gutter
+      ? below
+      : Math.max(gutter, above)
+  }px`;
+}
+
+function openDatabaseListPicker(picker, { focusOption = false } = {}) {
+  if (!picker) return;
+  closeDatabaseListPickers();
+  const trigger = $("[data-db-list-trigger]", picker);
+  const menu = $("[data-db-list-menu]", picker);
+  picker.classList.add("is-open");
+  trigger?.setAttribute("aria-expanded", "true");
+  menu?.classList.remove("is-hidden");
+  positionDatabaseListMenu(picker);
+  if (focusOption) {
+    ($('[role="option"][aria-selected="true"]', menu) || $('[role="option"]', menu))?.focus();
+  }
+}
+
+function toggleDatabaseListPicker(picker) {
+  if (picker?.classList.contains("is-open")) closeDatabaseListPickers();
+  else openDatabaseListPicker(picker);
+}
+
+function chooseDatabaseListOption(option) {
+  const picker = option?.closest("[data-db-list-picker]");
+  const trigger = $("[data-db-list-trigger]", picker);
+  if (!picker || !trigger) return;
+  const entityId = picker.dataset.dbEntity;
+  const fieldId = picker.dataset.dbField;
+  trigger.value = option.dataset.dbListOption || "";
+  updateDatabaseCell(trigger);
+  closeDatabaseListPickers();
+  renderDatabase();
+  window.setTimeout(() => {
+    $(
+      `[data-db-list-picker][data-db-entity="${CSS.escape(entityId)}"][data-db-field="${CSS.escape(fieldId)}"] [data-db-list-trigger]`,
+      dom.tableBody,
+    )?.focus();
+  }, 0);
+}
+
 function openCommand(initial = "") {
   dom.commandModal.classList.remove("is-hidden");
   dom.commandInput.value = initial;

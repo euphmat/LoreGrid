@@ -8,6 +8,18 @@ dom.projectList.addEventListener("click", (event) => {
 });
 
 dom.tableBody.addEventListener("click", (event) => {
+  const listOption = event.target.closest("[data-db-list-option]");
+  if (listOption) {
+    event.stopPropagation();
+    chooseDatabaseListOption(listOption);
+    return;
+  }
+  const listTrigger = event.target.closest("[data-db-list-trigger]");
+  if (listTrigger) {
+    event.stopPropagation();
+    toggleDatabaseListPicker(listTrigger.closest("[data-db-list-picker]"));
+    return;
+  }
   if (event.target.closest("[data-db-field]")) return;
   const edit = event.target.closest("[data-edit-entity]");
   if (edit) {
@@ -48,6 +60,40 @@ dom.tableBody.addEventListener("change", (event) => {
     event.target.matches("select[data-db-field], input[type='checkbox'][data-db-field]")
   ) {
     updateDatabaseCell(event.target);
+  }
+});
+dom.tableBody.addEventListener("keydown", (event) => {
+  const picker = event.target.closest("[data-db-list-picker]");
+  if (!picker) return;
+  const trigger = event.target.closest("[data-db-list-trigger]");
+  const option = event.target.closest("[data-db-list-option]");
+  const menuOptions = $$("[data-db-list-option]", picker);
+  if (trigger && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+    event.preventDefault();
+    openDatabaseListPicker(picker, { focusOption: true });
+    if (event.key === "ArrowUp") menuOptions.at(-1)?.focus();
+    return;
+  }
+  if (!option) {
+    if (event.key === "Escape" && picker.classList.contains("is-open")) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeDatabaseListPickers({ restoreFocus: true });
+    }
+    return;
+  }
+  const index = menuOptions.indexOf(option);
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    const offset = event.key === "ArrowDown" ? 1 : -1;
+    menuOptions[(index + offset + menuOptions.length) % menuOptions.length]?.focus();
+  } else if (event.key === "Home" || event.key === "End") {
+    event.preventDefault();
+    menuOptions[event.key === "Home" ? 0 : menuOptions.length - 1]?.focus();
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    closeDatabaseListPickers({ restoreFocus: true });
   }
 });
 
@@ -438,6 +484,7 @@ document.addEventListener("click", (event) => {
   const add = event.target.closest("#empty-add-entity");
   if (clear) clearFilters();
   if (add) createEntityInInspector();
+  if (!event.target.closest("[data-db-list-picker]")) closeDatabaseListPickers();
   if (!event.target.closest(".list-filter-control")) {
     $$(".list-filter-control[open]", dom.listFilterBar).forEach((details) =>
       details.removeAttribute("open"),
@@ -452,6 +499,9 @@ document.addEventListener("click", (event) => {
     closeRelationEditor();
   }
 });
+
+dom.databaseView.addEventListener("scroll", () => closeDatabaseListPickers(), true);
+window.addEventListener("resize", () => closeDatabaseListPickers());
 
 document.addEventListener("keydown", (event) => {
   const target = event.target;

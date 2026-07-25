@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8" />
+<script>
+  const timestamp = new Date().toISOString();
+  const view = location.hash === "#board" ? "board" : "database";
+  localStorage.setItem("loregrid.state.v2", JSON.stringify({
+    schemaVersion: 4,
+    activeProjectId: "smoke-project",
+    activeEntityId: null,
+    settings: {
+      theme: "dark",
+      view,
+      query: "",
+      listFilters: {},
+      sort: "updatedAt-desc",
+      boardZoom: 1,
+      sidebarCollapsed: false,
+    },
+    projects: [{
+      id: "smoke-project",
+      name: "UI確認用プロジェクト",
+      gameType: "RPG",
+      accent: "#d06347",
+      description: "リスト選択と関連表示の確認",
+      columns: [{
+        id: "status",
+        label: "状態",
+        kind: "list",
+        options: [
+          { id: "active", label: "進行中", color: "#69B6A9" },
+          { id: "danger", label: "危険", color: "#E98F86" },
+          { id: "unknown", label: "未確認", color: "#E7C95B" },
+        ],
+      }],
+      entities: [
+        {
+          id: "hero",
+          title: "探索者",
+          body: "",
+          fields: { status: "active" },
+          x: 180,
+          y: 170,
+          links: [{ targetId: "ruins", memo: "古代遺跡を調査中", arrow: "end" }],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: "ruins",
+          title: "霧の古代遺跡",
+          body: "",
+          fields: { status: "danger" },
+          x: 600,
+          y: 330,
+          links: [{ targetId: "guild", memo: "封印を共同管理", arrow: "both" }],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: "guild",
+          title: "北方ギルド",
+          body: "",
+          fields: { status: "unknown" },
+          x: 1030,
+          y: 150,
+          links: [],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }],
+  }));
+  const frame = document.createElement("iframe");
+  frame.src = "index.html";
+  frame.style.cssText = "position:fixed;inset:0;width:100%;height:100%;border:0";
+  frame.addEventListener("load", () => {
+    if (view !== "database") return;
+    window.setTimeout(() => {
+      frame.contentDocument.querySelector("[data-db-list-trigger]")?.click();
+    }, 80);
+  });
+  document.body.append(frame);
+</script>

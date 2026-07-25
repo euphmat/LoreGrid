@@ -211,6 +211,77 @@ function listColumnOptionsMarkup(column, selected) {
   ].join("");
 }
 
+function dbListPickerMarkup(column, item, value) {
+  const current = value === undefined || value === null ? "" : String(value);
+  const selectedOption = listOptionForValue(column, current);
+  const currentLabel = selectedOption?.label || current || "未選択";
+  const currentColor = selectedOption?.color || "#777B85";
+  const options = Array.isArray(column.options) ? [...column.options] : [];
+  const availableOptions =
+    current && !selectedOption
+      ? [{ id: current, label: current, color: "#777B85" }, ...options]
+      : options;
+  return `
+    <div
+      class="db-list-picker"
+      data-db-list-picker
+      data-db-entity="${escapeHTML(item.id)}"
+      data-db-field="${escapeHTML(column.id)}"
+    >
+      <button
+        type="button"
+        class="db-list-trigger ${current ? "" : "is-empty"}"
+        data-db-list-trigger
+        data-db-field="${escapeHTML(column.id)}"
+        data-db-entity="${escapeHTML(item.id)}"
+        value="${escapeHTML(selectedOption?.id || current)}"
+        style="--list-color:${escapeHTML(currentColor)}"
+        aria-label="${escapeHTML(column.label)}：${escapeHTML(currentLabel)}"
+        aria-haspopup="listbox"
+        aria-expanded="false"
+      >
+        <span class="db-list-color" aria-hidden="true"></span>
+        <span class="db-list-current">${escapeHTML(currentLabel)}</span>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg>
+      </button>
+      <div
+        class="db-list-menu is-hidden"
+        data-db-list-menu
+        role="listbox"
+        aria-label="${escapeHTML(column.label)}の候補"
+      >
+        ${availableOptions
+          .map(
+            (option) => `
+              <button
+                type="button"
+                class="db-list-option"
+                data-db-list-option="${escapeHTML(option.id)}"
+                style="--list-color:${escapeHTML(option.color)}"
+                role="option"
+                aria-selected="${String(option.id === (selectedOption?.id || current))}"
+              >
+                <span class="db-list-option-dot" aria-hidden="true"></span>
+                <span>${escapeHTML(option.label)}</span>
+                <span class="db-list-option-check" aria-hidden="true">✓</span>
+              </button>`,
+          )
+          .join("")}
+        <button
+          type="button"
+          class="db-list-option db-list-clear"
+          data-db-list-option=""
+          role="option"
+          aria-selected="${String(!current)}"
+        >
+          <span class="db-list-option-dot" aria-hidden="true"></span>
+          <span>未選択に戻す</span>
+          <span class="db-list-option-check" aria-hidden="true">✓</span>
+        </button>
+      </div>
+    </div>`;
+}
+
 function dbFieldEditorMarkup(column, item) {
   const value = item.fields?.[column.id];
   if (column.kind === "checkbox") {
@@ -225,14 +296,7 @@ function dbFieldEditorMarkup(column, item) {
     </label>`;
   }
   if (column.kind === "list") {
-    const selectedOption = listOptionForValue(column, value);
-    return `<select
-      class="db-cell-input db-cell-select"
-      data-db-field="${escapeHTML(column.id)}"
-      data-db-entity="${escapeHTML(item.id)}"
-      style="--list-color:${escapeHTML(selectedOption?.color || "#777B85")}"
-      aria-label="${escapeHTML(column.label)}"
-    >${listColumnOptionsMarkup(column, value)}</select>`;
+    return dbListPickerMarkup(column, item, value);
   }
   const type = column.kind === "number" ? "number" : column.kind === "date" ? "date" : "text";
   return `<input
@@ -334,7 +398,7 @@ function renderRelationLines(items) {
       const my = (sy + ty) / 2;
       const combinedLabel = link.memo || "Memoを追加";
       const safeLabel = combinedLabel.replace(/\s+/g, " ").slice(0, 28);
-      const labelWidth = Math.max(42, safeLabel.length * 9 + 12);
+      const labelWidth = Math.max(68, safeLabel.length * 9 + 24);
       const markerStart = ["start", "both"].includes(link.arrow)
         ? 'marker-start="url(#relation-arrow)"'
         : "";
@@ -355,8 +419,8 @@ function renderRelationLines(items) {
           <title>${escapeHTML(combinedLabel)}</title>
           <path class="relation-line-hit" d="M${sx} ${sy} C${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}" />
           <path class="relation-line" d="M${sx} ${sy} C${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}" ${markerStart} ${markerEnd} />
-          <rect class="relation-label-bg" x="${mx - labelWidth / 2}" y="${my - 10}" width="${labelWidth}" height="18" rx="4" />
-          <text class="relation-label-text" x="${mx}" y="${my + 2}" text-anchor="middle">${escapeHTML(safeLabel)}</text>
+          <rect class="relation-label-bg" x="${mx - labelWidth / 2}" y="${my - 12}" width="${labelWidth}" height="24" rx="12" />
+          <text class="relation-label-text" x="${mx}" y="${my + 3}" text-anchor="middle">${escapeHTML(safeLabel)}</text>
         </g>`;
     })
     .join("")}`;
@@ -476,6 +540,9 @@ function renderBoard() {
           ${imageMarkup(item, "board-card-image")}
           <div class="board-card-body">
             <h3>${escapeHTML(item.title)}</h3>
+            ${item.body?.trim()
+              ? `<p class="board-card-description">${escapeHTML(item.body)}</p>`
+              : ""}
             ${boardListBadgesMarkup(item)}
           </div>
           ${connectorHandlesMarkup(item)}

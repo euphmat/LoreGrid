@@ -199,6 +199,9 @@ $("#clear-search").addEventListener("click", () => {
   markChanged("検索を解除");
 });
 $("#sort-button").addEventListener("click", cycleSort);
+$("#manage-columns-button").addEventListener("click", () => {
+  openDatabaseColumnModal(activeProject().columns[0]?.id || null);
+});
 $("#zoom-in").addEventListener("click", () => setBoardZoom(0.1));
 $("#zoom-out").addEventListener("click", () => setBoardZoom(-0.1));
 
@@ -281,16 +284,39 @@ dom.relationForm.addEventListener("submit", submitRelation);
 $("#delete-entity-button").addEventListener("click", deleteCurrentEntity);
 $("#delete-column-button").addEventListener("click", () => {
   const id = $("#column-id").value;
-  if (id) deleteDatabaseColumn(id);
+  if (id) deleteDatabaseColumn(id, { keepEditorOpen: true });
 });
 $("#delete-relation-button").addEventListener("click", deleteCurrentRelation);
-$("#column-kind").addEventListener("change", updateColumnListSettingsVisibility);
+dom.columnForm.addEventListener("input", () => {
+  databaseColumnEditorDirty = true;
+});
+$("#column-kind").addEventListener("change", () => {
+  databaseColumnEditorDirty = true;
+  updateColumnListSettingsVisibility();
+});
 $("#add-list-option").addEventListener("click", () => addListOptionEditorRow());
+$("#add-managed-column").addEventListener("click", () => switchDatabaseColumnEditor());
+$("#column-manager-list").addEventListener("click", (event) => {
+  const select = event.target.closest("[data-select-managed-column]");
+  const move = event.target.closest("[data-move-managed-column]");
+  if (select) {
+    if (select.dataset.selectManagedColumn !== $("#column-id").value) {
+      switchDatabaseColumnEditor(select.dataset.selectManagedColumn);
+    }
+  } else if (move) {
+    if (databaseColumnEditorDirty && !saveDatabaseColumnEditor({ quiet: true })) return;
+    moveDatabaseColumn(
+      move.dataset.moveManagedColumn,
+      Number(move.dataset.moveDirection),
+    );
+  }
+});
 $("#column-list-options").addEventListener("click", (event) => {
   const remove = event.target.closest("[data-remove-list-option]");
   const color = event.target.closest("[data-list-option-color]");
   if (remove) {
     remove.closest("[data-list-option-row]")?.remove();
+    databaseColumnEditorDirty = true;
   } else if (color) {
     const row = color.closest("[data-list-option-row]");
     const selected = normalizePaletteColor(color.dataset.listOptionColor);
@@ -299,6 +325,7 @@ $("#column-list-options").addEventListener("click", (event) => {
     $(".list-option-badge-preview", row)?.style.setProperty("--list-color", selected);
     $(".list-option-color-picker summary", row)?.style.setProperty("--list-color", selected);
     $(".list-option-color-picker", row)?.removeAttribute("open");
+    databaseColumnEditorDirty = true;
   }
 });
 
@@ -405,6 +432,7 @@ document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
     event.preventDefault();
     if (!dom.entityModal.classList.contains("is-hidden")) dom.entityForm.requestSubmit();
+    else if (!dom.columnModal.classList.contains("is-hidden")) dom.columnForm.requestSubmit();
     else {
       saveImmediately();
       toast("この端末に保存しました。");

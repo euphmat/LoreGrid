@@ -15,6 +15,49 @@
   padding: 16px 28px 45px;
 }
 
+.database-schema-bar {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.database-schema-bar > div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.database-schema-bar strong {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.database-schema-bar span {
+  overflow: hidden;
+  color: var(--ink-faint);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.database-schema-bar button {
+  display: inline-flex;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+}
+
+.database-schema-bar button svg {
+  width: 14px;
+  height: 14px;
+}
+
 .table-wrap {
   overflow: auto;
   border: 1px solid var(--line);
@@ -71,7 +114,7 @@
 }
 
 .custom-column-header {
-  min-width: 230px !important;
+  min-width: 205px !important;
   padding: 4px 6px !important;
   cursor: grab;
   transition: opacity 120ms, box-shadow 120ms;
@@ -101,8 +144,18 @@
 
 .column-heading-copy {
   display: grid;
+  width: 100%;
   min-width: 0;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   gap: 2px;
+  text-align: left;
+}
+
+.column-heading-copy:hover {
+  background: var(--surface-3);
 }
 
 .column-heading-copy strong,
@@ -131,14 +184,14 @@
 }
 
 .column-header-actions button {
-  min-width: 24px;
-  height: 24px;
-  padding: 0 5px;
+  min-width: 36px;
+  height: 26px;
+  padding: 0 7px;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--surface);
   color: var(--ink-faint);
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .column-header-actions button:hover:not(:disabled) {
@@ -446,4 +499,3 @@
   font-size: 10px;
   line-height: 1.6;
 }
-

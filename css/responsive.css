@@ -173,6 +173,43 @@
     display: none;
   }
 
+  .database-schema-bar > div {
+    display: grid;
+    gap: 1px;
+  }
+
+  .column-editor-layout {
+    min-height: 0;
+    overflow-y: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .column-modal-card {
+    width: 100vw;
+    height: 100vh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .column-modal-card form {
+    max-height: calc(100vh - 68px);
+  }
+
+  .column-manager-sidebar {
+    max-height: 190px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .column-form-body {
+    overflow: visible;
+  }
+
+  .column-editor-heading #column-autosave-note {
+    display: none;
+  }
+
   .topbar {
     padding: 0 6px;
   }

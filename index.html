@@ -203,6 +203,21 @@
 
         <section id="content-area" class="content-area">
           <div id="database-view" class="database-view">
+            <div class="database-schema-bar">
+              <div>
+                <strong>データベースの列</strong>
+                <span id="database-column-summary">列はまだありません</span>
+              </div>
+              <button id="manage-columns-button" type="button" class="secondary-button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 6h16M4 12h16M4 18h16"></path>
+                  <circle cx="9" cy="6" r="1.5"></circle>
+                  <circle cx="15" cy="12" r="1.5"></circle>
+                  <circle cx="7" cy="18" r="1.5"></circle>
+                </svg>
+                列を管理
+              </button>
+            </div>
             <div class="table-wrap">
               <table class="lore-table">
                 <thead id="entity-table-head"></thead>
@@ -428,8 +443,8 @@
       <section class="small-modal-card column-modal-card">
         <header class="modal-header">
           <div>
-            <span>DATABASE COLUMN</span>
-            <h2 id="column-modal-title">列を追加</h2>
+            <span>DATABASE COLUMNS</span>
+            <h2 id="column-modal-title">列を管理</h2>
           </div>
           <button class="icon-button" data-close-modal="column" aria-label="閉じる">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
@@ -437,31 +452,51 @@
         </header>
         <form id="column-form">
           <input id="column-id" type="hidden" />
-          <div class="small-form-body column-form-body">
-            <label class="field">
-              <span>列名</span>
-              <input id="column-name" required maxlength="40" placeholder="列名を入力" />
-            </label>
-            <label class="field">
-              <span>項目形式</span>
-              <select id="column-kind"></select>
-            </label>
-            <section id="column-list-settings" class="column-list-settings is-hidden">
-              <div class="column-list-heading">
+          <div class="column-editor-layout">
+            <aside class="column-manager-sidebar" aria-label="データベースの列">
+              <div class="column-manager-sidebar-heading">
                 <div>
-                  <strong>リスト候補</strong>
-                  <small>各候補の名称とバッジカラーを設定</small>
+                  <strong>列一覧</strong>
+                  <small>選択して編集・矢印で並べ替え</small>
                 </div>
-                <button id="add-list-option" type="button" class="secondary-button">＋ 候補を追加</button>
+                <button id="add-managed-column" type="button" aria-label="新しい列を追加" title="新しい列を追加">＋</button>
               </div>
-              <div id="column-list-options" class="column-list-option-editor"></div>
-            </section>
+              <div id="column-manager-list" class="column-manager-list"></div>
+            </aside>
+            <div class="small-form-body column-form-body">
+              <div class="column-editor-heading">
+                <div>
+                  <span id="column-editor-eyebrow">NEW COLUMN</span>
+                  <h3 id="column-editor-heading">新しい列を追加</h3>
+                </div>
+                <span id="column-autosave-note">列を切り替えると変更を自動保存します</span>
+              </div>
+              <label class="field">
+                <span>列名</span>
+                <input id="column-name" required maxlength="40" placeholder="例：分類、登場年代、所属" />
+              </label>
+              <label class="field">
+                <span>入力形式</span>
+                <select id="column-kind"></select>
+                <small id="column-kind-help" class="column-kind-help"></small>
+              </label>
+              <section id="column-list-settings" class="column-list-settings is-hidden">
+                <div class="column-list-heading">
+                  <div>
+                    <strong>リスト候補</strong>
+                    <small>各候補の名称とバッジカラーを設定</small>
+                  </div>
+                  <button id="add-list-option" type="button" class="secondary-button">＋ 候補を追加</button>
+                </div>
+                <div id="column-list-options" class="column-list-option-editor"></div>
+              </section>
+            </div>
           </div>
           <footer class="modal-footer">
             <button id="delete-column-button" type="button" class="danger-button is-hidden">列を削除</button>
             <div class="modal-footer-actions">
               <button type="button" class="secondary-button" data-close-modal="column">キャンセル</button>
-              <button type="submit" class="primary-button large">保存する</button>
+              <button type="submit" class="primary-button large">保存して閉じる</button>
             </div>
           </footer>
         </form>

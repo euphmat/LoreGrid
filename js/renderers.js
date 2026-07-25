@@ -62,39 +62,32 @@ function addImageFallbacks(root = document) {
 function renderDatabase() {
   const items = visibleEntities();
   const columns = activeProject().columns;
+  $("#database-column-summary").textContent = columns.length
+    ? `${columns.length}列 · ${columns.map((column) => column.label).join("、")}`
+    : "列はまだありません";
   dom.tableHead.innerHTML = `
     <tr>
       <th class="col-marker"><span class="sr-only">選択</span></th>
       <th data-sort="title">Name <span class="sort-indicator">↕</span></th>
       ${columns
         .map(
-          (column, index) => `
+          (column) => `
             <th
               class="custom-column-header"
               data-column-id="${escapeHTML(column.id)}"
-              draggable="true"
             >
               <div class="custom-column-display">
-                <span class="column-drag-handle" title="ドラッグして並べ替え">⠿</span>
-                <span class="column-heading-copy">
+                <span class="column-drag-handle" draggable="true" title="ドラッグして並べ替え">⠿</span>
+                <button
+                  type="button"
+                  class="column-heading-copy"
+                  data-edit-db-column="${escapeHTML(column.id)}"
+                  title="${escapeHTML(column.label)}を編集"
+                >
                   <strong>${escapeHTML(column.label)}</strong>
                   <small>${escapeHTML(columnKindLabel(column.kind))}</small>
-                </span>
+                </button>
                 <div class="column-header-actions">
-                  <button
-                    data-move-db-column="${escapeHTML(column.id)}"
-                    data-move-direction="-1"
-                    aria-label="${escapeHTML(column.label)}を左へ移動"
-                    title="左へ移動"
-                    ${index === 0 ? "disabled" : ""}
-                  >←</button>
-                  <button
-                    data-move-db-column="${escapeHTML(column.id)}"
-                    data-move-direction="1"
-                    aria-label="${escapeHTML(column.label)}を右へ移動"
-                    title="右へ移動"
-                    ${index === columns.length - 1 ? "disabled" : ""}
-                  >→</button>
                   <button
                     class="column-edit-button"
                     data-edit-db-column="${escapeHTML(column.id)}"
@@ -632,4 +625,3 @@ function renderAll() {
   document.documentElement.classList.toggle("dark", state.settings.theme === "dark");
   void hydrateActiveProjectImages(project.id);
 }
-

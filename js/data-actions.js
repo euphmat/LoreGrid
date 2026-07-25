@@ -114,11 +114,62 @@ function listOptionEditorRowMarkup(option = {}) {
 function addListOptionEditorRow(option = {}) {
   $("#column-list-options").insertAdjacentHTML("beforeend", listOptionEditorRowMarkup(option));
   const row = $("#column-list-options").lastElementChild;
+  databaseColumnEditorDirty = true;
   $(".list-option-name", row)?.focus();
 }
 
 function updateColumnListSettingsVisibility() {
-  $("#column-list-settings").classList.toggle("is-hidden", $("#column-kind").value !== "list");
+  const kind = $("#column-kind").value;
+  $("#column-list-settings").classList.toggle("is-hidden", kind !== "list");
+  $("#column-kind-help").textContent =
+    {
+      text: "名前や短いメモなど、1行の文字を入力します。",
+      textarea: "説明や補足など、複数行の文章を入力します。",
+      number: "数値だけを入力します。",
+      date: "カレンダーから日付を選びます。",
+      checkbox: "完了・未完了のような二択を管理します。",
+      list: "色付きの候補から1つを選びます。",
+    }[kind] || "";
+}
+
+function renderColumnManagerList(activeId = "") {
+  const columns = activeProject().columns;
+  $("#column-manager-list").innerHTML = columns.length
+    ? columns
+        .map(
+          (column, index) => `
+            <div class="column-manager-item ${column.id === activeId ? "is-active" : ""}">
+              <button
+                type="button"
+                class="column-manager-select"
+                data-select-managed-column="${escapeHTML(column.id)}"
+                aria-label="${escapeHTML(column.label)}を編集"
+              >
+                <strong>${escapeHTML(column.label)}</strong>
+                <small>${escapeHTML(columnKindLabel(column.kind))}</small>
+              </button>
+              <button
+                type="button"
+                class="column-manager-move"
+                data-move-managed-column="${escapeHTML(column.id)}"
+                data-move-direction="-1"
+                aria-label="${escapeHTML(column.label)}を前へ移動"
+                title="前へ移動"
+                ${index === 0 ? "disabled" : ""}
+              >↑</button>
+              <button
+                type="button"
+                class="column-manager-move"
+                data-move-managed-column="${escapeHTML(column.id)}"
+                data-move-direction="1"
+                aria-label="${escapeHTML(column.label)}を後へ移動"
+                title="後へ移動"
+                ${index === columns.length - 1 ? "disabled" : ""}
+              >↓</button>
+            </div>`,
+        )
+        .join("")
+    : `<p class="column-manager-empty">列はまだありません。<br />右上の ＋ から追加できます。</p>`;
 }
 
 function openDatabaseColumnModal(id = null) {
@@ -131,9 +182,13 @@ function openDatabaseColumnModal(id = null) {
   $("#column-list-options").innerHTML = (column?.options || [])
     .map((option) => listOptionEditorRowMarkup(option))
     .join("");
-  $("#column-modal-title").textContent = column ? "列を編集" : "列を追加";
+  $("#column-modal-title").textContent = "列を管理";
+  $("#column-editor-eyebrow").textContent = column ? "EDIT COLUMN" : "NEW COLUMN";
+  $("#column-editor-heading").textContent = column ? `「${column.label}」を編集` : "新しい列を追加";
   $("#delete-column-button").classList.toggle("is-hidden", !column);
+  renderColumnManagerList(column?.id || "");
   updateColumnListSettingsVisibility();
+  databaseColumnEditorDirty = false;
   dom.columnModal.classList.remove("is-hidden");
   window.setTimeout(() => $("#column-name").focus(), 30);
 }
@@ -144,13 +199,20 @@ function closeDatabaseColumnModal() {
 
 function submitDatabaseColumn(event) {
   event.preventDefault();
+  saveDatabaseColumnEditor({ close: true });
+}
+
+function saveDatabaseColumnEditor({ close = false, quiet = false } = {}) {
   const project = activeProject();
   const id = $("#column-id").value;
   const existing = id
     ? project.columns.find((candidate) => candidate.id === id)
     : null;
   const label = $("#column-name").value.trim();
-  if (!label) return;
+  if (!label) {
+    $("#column-name").reportValidity();
+    return false;
+  }
   const kind = $("#column-kind").value;
   const options = normalizeListOptions(
     $$(".column-list-option-row", $("#column-list-options")).map((row) => ({
@@ -169,6 +231,10 @@ function submitDatabaseColumn(event) {
   const previousOptions = [...(column.options || [])];
   Object.assign(column, { label, kind, options });
   if (!existing) project.columns.push(column);
+  $("#column-id").value = column.id;
+  $("#column-editor-eyebrow").textContent = "EDIT COLUMN";
+  $("#column-editor-heading").textContent = `「${label}」を編集`;
+  $("#delete-column-button").classList.remove("is-hidden");
 
   project.entities.forEach((item) => {
     const current = item.fields[column.id];
@@ -191,10 +257,19 @@ function submitDatabaseColumn(event) {
     }
   });
   updateProjectTimestamp();
-  closeDatabaseColumnModal();
+  databaseColumnEditorDirty = false;
+  if (close) closeDatabaseColumnModal();
   renderAll();
   markChanged(existing ? "DB列を更新しました" : "DB列を追加しました");
-  toast(existing ? `列「${label}」を更新しました。` : `列「${label}」を追加しました。`);
+  if (!quiet) {
+    toast(existing ? `列「${label}」を更新しました。` : `列「${label}」を追加しました。`);
+  }
+  return true;
+}
+
+function switchDatabaseColumnEditor(id = null) {
+  if (databaseColumnEditorDirty && !saveDatabaseColumnEditor({ quiet: true })) return;
+  openDatabaseColumnModal(id);
 }
 
 function moveDatabaseColumn(id, direction) {
@@ -207,6 +282,9 @@ function moveDatabaseColumn(id, direction) {
   updateProjectTimestamp();
   renderDatabase();
   renderInspector();
+  if (!dom.columnModal.classList.contains("is-hidden")) {
+    renderColumnManagerList($("#column-id").value);
+  }
   markChanged("DB列を並べ替えました");
 }
 
@@ -225,8 +303,9 @@ function reorderDatabaseColumn(sourceId, targetId, placeAfter = false) {
   markChanged("DB列を並べ替えました");
 }
 
-function deleteDatabaseColumn(id) {
+function deleteDatabaseColumn(id, { keepEditorOpen = false } = {}) {
   const project = activeProject();
+  const deletedIndex = project.columns.findIndex((candidate) => candidate.id === id);
   const column = project.columns.find((candidate) => candidate.id === id);
   if (!column) return false;
   if (!window.confirm(`列「${column.label || "名称未設定"}」を削除しますか？\nこの列に入力した値も削除されます。`)) return false;
@@ -235,8 +314,12 @@ function deleteDatabaseColumn(id) {
     delete item.fields[id];
   });
   updateProjectTimestamp();
-  closeDatabaseColumnModal();
+  if (!keepEditorOpen) closeDatabaseColumnModal();
   renderAll();
+  if (keepEditorOpen) {
+    const nextColumn = project.columns[Math.min(deletedIndex, project.columns.length - 1)];
+    openDatabaseColumnModal(nextColumn?.id || null);
+  }
   markChanged("DB列を削除しました");
   toast(`列「${column.label || "名称未設定"}」を削除しました。`, "−");
   return true;
@@ -765,4 +848,3 @@ const COMMANDS = [
   { id: "import", title: "JSONを読み込む", subtitle: "バックアップから置き換え", icon: "↑", action: () => $("#import-file").click() },
   { id: "help", title: "キー操作を表示", subtitle: "Vim とグローバルショートカット", key: "?", icon: "?", action: () => openHelp() },
 ];
-

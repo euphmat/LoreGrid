@@ -244,6 +244,7 @@ let saveTimer = null;
 let commandSelection = 0;
 let commandItems = [];
 let draggedDatabaseColumnId = "";
+let databaseColumnEditorDirty = false;
 let workspaceBannerDragDepth = 0;
 let lastGlobalEscape = 0;
 const sessionImageURLs = new Map();
@@ -544,4 +545,3 @@ function visibleEntities() {
     return direction === "asc" ? result : -result;
   });
 }
-

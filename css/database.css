@@ -40,13 +40,13 @@
 
 .database-schema-summary strong {
   color: var(--ink);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .database-schema-summary span {
   overflow: hidden;
   color: var(--ink-faint);
-  font-size: 8px;
+  font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -86,12 +86,12 @@
 }
 
 .lore-table th {
-  height: 34px;
+  height: 40px;
   padding: 0 10px;
   background: var(--surface-2);
   color: var(--ink-faint);
   font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -174,12 +174,12 @@
 
 .column-heading-copy strong {
   color: var(--ink);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .column-heading-copy small {
   color: var(--ink-faint);
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
@@ -341,6 +341,11 @@
   gap: 3px;
 }
 
+.db-list-options {
+  display: grid;
+  gap: 3px;
+}
+
 .db-list-option {
   display: grid;
   width: 100%;
@@ -400,6 +405,96 @@
   border: 1px solid var(--ink-faint);
   background: transparent;
   box-shadow: none;
+}
+
+.db-list-quick-add {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 9px 3px 3px;
+  border-top: 1px solid var(--line);
+}
+
+.db-list-quick-add-title {
+  color: var(--ink-faint);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.db-list-quick-add-controls {
+  display: grid;
+  grid-template-columns: 34px minmax(92px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.db-list-quick-color {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.db-list-quick-color input {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  inset: -6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.db-list-quick-add-controls > input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: 0;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.db-list-quick-add-controls > input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.db-list-quick-add-controls > input[aria-invalid="true"] {
+  border-color: #c85a52;
+}
+
+.db-list-quick-add-button {
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.db-list-quick-add-button:hover,
+.db-list-quick-add-button:focus-visible {
+  outline: 0;
+  filter: brightness(1.08);
+}
+
+.db-list-quick-add-error {
+  min-height: 10px;
+  color: #c85a52;
+  font-size: 8px;
 }
 
 .db-checkbox {

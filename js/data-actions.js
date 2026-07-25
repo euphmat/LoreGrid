@@ -128,7 +128,7 @@ function updateProjectTimestamp() {
 
 function listOptionEditorRowMarkup(option = {}) {
   const id = option.id || uid("opt");
-  const color = normalizePaletteColor(option.color || COLOR_PALETTE[20]);
+  const color = normalizeColor(option.color || COLOR_PALETTE[20]);
   return `
     <div class="column-list-option-row" data-list-option-row data-option-id="${escapeHTML(id)}" style="--list-color:${color}">
       <span class="list-option-badge-preview" style="--list-color:${color}"></span>
@@ -408,6 +408,68 @@ function updateDatabaseCell(target) {
   renderBoard();
   if (state.activeEntityId === item.id) renderInspector();
   markChanged("セルの変更を保存しました");
+}
+
+function addDatabaseListOptionFromPicker(form) {
+  const picker = form?.closest("[data-db-list-picker]");
+  if (!picker) return false;
+  const column = activeProject().columns.find(
+    (candidate) =>
+      candidate.id === picker.dataset.dbField && candidate.kind === "list",
+  );
+  const item = getEntityById(picker.dataset.dbEntity);
+  const labelInput = $("[data-db-list-new-label]", form);
+  const colorInput = $("[data-db-list-new-color]", form);
+  const error = $("[data-db-list-new-error]", form);
+  const label = labelInput?.value.trim() || "";
+  if (!column || !item || !labelInput || !colorInput) return false;
+  const showError = (message) => {
+    if (error) error.textContent = message;
+    labelInput.setAttribute("aria-invalid", "true");
+    labelInput.focus();
+  };
+  if (!label) {
+    showError("項目名を入力してください");
+    return false;
+  }
+  if ((column.options || []).length >= 50) {
+    showError("候補は50件まで追加できます");
+    return false;
+  }
+  const duplicate = (column.options || []).find(
+    (option) =>
+      option.label.trim().toLocaleLowerCase("ja") ===
+      label.toLocaleLowerCase("ja"),
+  );
+  if (duplicate) {
+    showError("同じ名前の項目があります");
+    return false;
+  }
+  const option = {
+    id: uid("opt"),
+    label: label.slice(0, 40),
+    color: normalizeColor(colorInput.value),
+  };
+  column.options = [...(column.options || []), option];
+  item.fields[column.id] = option.id;
+  item.updatedAt = now();
+  updateProjectTimestamp();
+  state.activeEntityId = item.id;
+  const entityId = item.id;
+  const fieldId = column.id;
+  renderFilters();
+  renderDatabase();
+  renderBoard();
+  renderInspector();
+  markChanged(`「${option.label}」をリストへ追加しました`);
+  toast(`「${option.label}」を追加して選択しました。`, "＋");
+  window.setTimeout(() => {
+    $(
+      `[data-db-list-picker][data-db-entity="${CSS.escape(entityId)}"][data-db-field="${CSS.escape(fieldId)}"] [data-db-list-trigger]`,
+      dom.tableBody,
+    )?.focus();
+  }, 0);
+  return true;
 }
 
 function openEntityModal(id = null) {

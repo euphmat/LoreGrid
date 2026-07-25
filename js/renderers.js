@@ -221,6 +221,8 @@ function dbListPickerMarkup(column, item, value) {
     current && !selectedOption
       ? [{ id: current, label: current, color: "#777B85" }, ...options]
       : options;
+  const newOptionColor =
+    COLOR_PALETTE[(options.length * 3 + 20) % COLOR_PALETTE.length];
   return `
     <div
       class="db-list-picker"
@@ -247,37 +249,71 @@ function dbListPickerMarkup(column, item, value) {
       <div
         class="db-list-menu is-hidden"
         data-db-list-menu
-        role="listbox"
-        aria-label="${escapeHTML(column.label)}の候補"
       >
-        ${availableOptions
-          .map(
-            (option) => `
-              <button
-                type="button"
-                class="db-list-option"
-                data-db-list-option="${escapeHTML(option.id)}"
-                style="--list-color:${escapeHTML(option.color)}"
-                role="option"
-                aria-selected="${String(option.id === (selectedOption?.id || current))}"
-              >
-                <span class="db-list-option-dot" aria-hidden="true"></span>
-                <span>${escapeHTML(option.label)}</span>
-                <span class="db-list-option-check" aria-hidden="true">✓</span>
-              </button>`,
-          )
-          .join("")}
-        <button
-          type="button"
-          class="db-list-option db-list-clear"
-          data-db-list-option=""
-          role="option"
-          aria-selected="${String(!current)}"
+        <div
+          class="db-list-options"
+          role="listbox"
+          aria-label="${escapeHTML(column.label)}の候補"
         >
-          <span class="db-list-option-dot" aria-hidden="true"></span>
-          <span>未選択に戻す</span>
-          <span class="db-list-option-check" aria-hidden="true">✓</span>
-        </button>
+          ${availableOptions
+            .map(
+              (option) => `
+                <button
+                  type="button"
+                  class="db-list-option"
+                  data-db-list-option="${escapeHTML(option.id)}"
+                  style="--list-color:${escapeHTML(option.color)}"
+                  role="option"
+                  aria-selected="${String(option.id === (selectedOption?.id || current))}"
+                >
+                  <span class="db-list-option-dot" aria-hidden="true"></span>
+                  <span>${escapeHTML(option.label)}</span>
+                  <span class="db-list-option-check" aria-hidden="true">✓</span>
+                </button>`,
+            )
+            .join("")}
+          <button
+            type="button"
+            class="db-list-option db-list-clear"
+            data-db-list-option=""
+            role="option"
+            aria-selected="${String(!current)}"
+          >
+            <span class="db-list-option-dot" aria-hidden="true"></span>
+            <span>未選択に戻す</span>
+            <span class="db-list-option-check" aria-hidden="true">✓</span>
+          </button>
+        </div>
+        <form class="db-list-quick-add" data-db-list-quick-add>
+          <span class="db-list-quick-add-title">新しい項目を追加</span>
+          <div class="db-list-quick-add-controls">
+            <label
+              class="db-list-quick-color"
+              title="項目の色を選択"
+              aria-label="項目の色を選択"
+            >
+              <input
+                type="color"
+                value="${escapeHTML(newOptionColor)}"
+                data-db-list-new-color
+              />
+            </label>
+            <input
+              type="text"
+              maxlength="40"
+              placeholder="項目名を入力"
+              autocomplete="off"
+              data-db-list-new-label
+              aria-label="${escapeHTML(column.label)}へ追加する項目名"
+            />
+            <button type="submit" class="db-list-quick-add-button">追加</button>
+          </div>
+          <small
+            class="db-list-quick-add-error"
+            data-db-list-new-error
+            aria-live="polite"
+          ></small>
+        </form>
       </div>
     </div>`;
 }

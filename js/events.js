@@ -8,6 +8,10 @@ dom.projectList.addEventListener("click", (event) => {
 });
 
 dom.tableBody.addEventListener("click", (event) => {
+  if (event.target.closest("[data-db-list-quick-add]")) {
+    event.stopPropagation();
+    return;
+  }
   const listOption = event.target.closest("[data-db-list-option]");
   if (listOption) {
     event.stopPropagation();
@@ -31,6 +35,14 @@ dom.tableBody.addEventListener("click", (event) => {
   if (row) selectEntity(row.dataset.entityId);
 });
 
+dom.tableBody.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-db-list-quick-add]");
+  if (!form) return;
+  event.preventDefault();
+  event.stopPropagation();
+  addDatabaseListOptionFromPicker(form);
+});
+
 dom.tableBody.addEventListener("dblclick", (event) => {
   if (event.target.closest("[data-db-field]")) return;
   const row = event.target.closest("[data-entity-id]");
@@ -47,6 +59,13 @@ dom.tableBody.addEventListener("focusin", (event) => {
   markChanged("項目を選択");
 });
 dom.tableBody.addEventListener("input", (event) => {
+  if (event.target.matches("[data-db-list-new-label]")) {
+    event.target.removeAttribute("aria-invalid");
+    const form = event.target.closest("[data-db-list-quick-add]");
+    const error = $("[data-db-list-new-error]", form);
+    if (error) error.textContent = "";
+    return;
+  }
   if (
     event.target.matches("[data-db-field]") &&
     event.target.tagName !== "SELECT" &&

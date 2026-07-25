@@ -68,7 +68,7 @@ function normalizeListOptions(options) {
       return {
         id: source.id || uid("opt"),
         label,
-        color: normalizePaletteColor(
+        color: normalizeColor(
           source.color || COLOR_PALETTE[(index * 3 + 20) % COLOR_PALETTE.length],
         ),
       };

@@ -47,9 +47,21 @@
 
 .board-canvas {
   position: relative;
-  width: 1800px;
-  height: 1050px;
   transform-origin: 0 0;
+}
+
+#board-cards {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+#board-cards > [data-board-id] {
+  pointer-events: auto;
 }
 
 .relation-lines {
@@ -701,50 +713,6 @@
 
 .connector-handle.is-w:hover {
   transform: translateY(-50%) scale(1.35);
-}
-
-.board-legend {
-  position: sticky;
-  bottom: 14px;
-  left: 16px;
-  z-index: 15;
-  display: inline-flex;
-  height: 31px;
-  align-items: center;
-  gap: 14px;
-  margin: 0 0 14px 16px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-  color: var(--ink-faint);
-  font-size: 8px;
-  backdrop-filter: blur(10px);
-}
-
-.board-legend span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.legend-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.legend-line {
-  width: 16px;
-  height: 0;
-  border-top: 1px dashed var(--ink-faint);
-}
-
-.legend-tip {
-  padding-left: 8px;
-  border-left: 1px solid var(--line);
 }
 
 .statusbar {

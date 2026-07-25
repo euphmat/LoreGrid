@@ -9,8 +9,10 @@ function handleBoardWheelZoom(event) {
   const rect = dom.boardViewport.getBoundingClientRect();
   const pointerX = event.clientX - rect.left;
   const pointerY = event.clientY - rect.top;
-  const contentX = (dom.boardViewport.scrollLeft + pointerX) / before;
-  const contentY = (dom.boardViewport.scrollTop + pointerY) / before;
+  const logicalX =
+    boardOriginX + (dom.boardViewport.scrollLeft + pointerX) / before;
+  const logicalY =
+    boardOriginY + (dom.boardViewport.scrollTop + pointerY) / before;
   const magnitude = Math.min(0.12, Math.max(0.02, Math.abs(event.deltaY) * 0.002));
   const next = Math.min(
     1.4,
@@ -19,8 +21,8 @@ function handleBoardWheelZoom(event) {
   if (next === before) return;
   state.settings.boardZoom = next;
   renderBoard();
-  dom.boardViewport.scrollLeft = contentX * next - pointerX;
-  dom.boardViewport.scrollTop = contentY * next - pointerY;
+  dom.boardViewport.scrollLeft = (logicalX - boardOriginX) * next - pointerX;
+  dom.boardViewport.scrollTop = (logicalY - boardOriginY) * next - pointerY;
   markChanged("Command + ホイールでボードをズーム");
 }
 
@@ -28,8 +30,27 @@ function boardPointFromClient(clientX, clientY) {
   const rect = dom.boardCanvas.getBoundingClientRect();
   const zoom = Number(state.settings.boardZoom) || 1;
   return {
-    x: (clientX - rect.left) / zoom,
-    y: (clientY - rect.top) / zoom,
+    x: boardOriginX + (clientX - rect.left) / zoom,
+    y: boardOriginY + (clientY - rect.top) / zoom,
+  };
+}
+
+function newEntityBoardCoordinates(index = 0) {
+  const zoom = Number(state.settings.boardZoom) || 1;
+  const offset = (index % 5) * 18;
+  return {
+    x: Math.round(
+      boardOriginX +
+      (dom.boardViewport.scrollLeft + dom.boardViewport.clientWidth / 2) / zoom -
+      94 +
+      offset,
+    ),
+    y: Math.round(
+      boardOriginY +
+      (dom.boardViewport.scrollTop + dom.boardViewport.clientHeight / 2) / zoom -
+      52 +
+      offset,
+    ),
   };
 }
 
@@ -88,7 +109,10 @@ function beginRelationDrag(event, handle) {
   event.preventDefault();
   event.stopPropagation();
   clearRelationDraft();
-  dom.relationDraftLines.setAttribute("viewBox", `0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`);
+  dom.relationDraftLines.setAttribute(
+    "viewBox",
+    `${boardOriginX} ${boardOriginY} ${boardCanvasWidth} ${boardCanvasHeight}`,
+  );
   handle.setPointerCapture?.(event.pointerId);
 
   const handleRect = handle.getBoundingClientRect();
@@ -159,10 +183,10 @@ function itemMovementBounds(item) {
   const parent = parentGroupFor(item);
   if (!parent) {
     return {
-      minX: 0,
-      minY: 0,
-      maxX: Math.max(0, BOARD_WIDTH - size.width),
-      maxY: Math.max(0, BOARD_HEIGHT - size.height),
+      minX: Number.NEGATIVE_INFINITY,
+      minY: Number.NEGATIVE_INFINITY,
+      maxX: Number.POSITIVE_INFINITY,
+      maxY: Number.POSITIVE_INFINITY,
     };
   }
   const minX = parent.x + 12;
@@ -434,18 +458,18 @@ function beginGroupResize(event, handle) {
     let width = origin.width;
     let height = origin.height;
     if (anchor.includes("e")) {
-      width = Math.min(BOARD_WIDTH - origin.x, Math.max(minimumWidth, origin.width + dx));
+      width = Math.min(1200, Math.max(minimumWidth, origin.width + dx));
     }
     if (anchor.includes("s")) {
-      height = Math.min(BOARD_HEIGHT - origin.y, Math.max(minimumHeight, origin.height + dy));
+      height = Math.min(850, Math.max(minimumHeight, origin.height + dy));
     }
     if (anchor.includes("w")) {
-      x = Math.max(0, Math.min(origin.x + origin.width - minimumWidth, origin.x + dx));
-      width = origin.width + (origin.x - x);
+      width = Math.min(1200, Math.max(minimumWidth, origin.width - dx));
+      x = origin.x + origin.width - width;
     }
     if (anchor.includes("n")) {
-      y = Math.max(0, Math.min(origin.y + origin.height - minimumHeight, origin.y + dy));
-      height = origin.height + (origin.y - y);
+      height = Math.min(850, Math.max(minimumHeight, origin.height - dy));
+      y = origin.y + origin.height - height;
     }
     if (parent) {
       const minX = parent.x + 12;

@@ -22,10 +22,17 @@ function focusInspectorTitle() {
 function createEntityInInspector() {
   const project = activeProject();
   const timestamp = now();
+  const boardCoordinates =
+    state.settings.view === "board"
+      ? newEntityBoardCoordinates(project.entities.length)
+      : {
+          x: 150 + (project.entities.length % 5) * 230,
+          y: 110 + (project.entities.length % 4) * 175,
+        };
   const created = entity({
     title: "名称未設定",
-    x: 150 + (project.entities.length % 5) * 230,
-    y: 110 + (project.entities.length % 4) * 175,
+    x: boardCoordinates.x,
+    y: boardCoordinates.y,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -93,13 +100,18 @@ function updateListFilter(columnId, optionId, checked) {
   else delete filters[columnId];
   state.settings.listFilters = filters;
   renderFilters();
-  $(
-    `[data-list-filter-column="${CSS.escape(columnId)}"]`,
-    dom.listFilterBar,
-  )?.closest("details")?.setAttribute("open", "");
   renderDatabase();
   renderBoard();
   markChanged("リストで絞り込みました");
+}
+
+function clearListFilterColumn(columnId) {
+  if (!state.settings.listFilters?.[columnId]) return;
+  delete state.settings.listFilters[columnId];
+  renderFilters();
+  renderDatabase();
+  renderBoard();
+  markChanged("リストの絞り込みを解除しました");
 }
 
 function clearListFilters() {
@@ -598,8 +610,8 @@ async function duplicateEntity(id) {
     ...original,
     id: newId,
     title: `${original.title}（複製）`,
-    x: Math.min(BOARD_WIDTH - 220, original.x + 35),
-    y: Math.min(BOARD_HEIGHT - 150, original.y + 35),
+    x: original.x + 35,
+    y: original.y + 35,
     createdAt: now(),
     updatedAt: now(),
     links: original.links.map((link) => ({ ...link })),
@@ -891,6 +903,7 @@ async function importJSON(file) {
     imageLoadPending.clear();
     missingImageIds.clear();
     state = normalized;
+    boardMetricsProjectId = "";
     saveImmediately();
     renderAll();
     toast(`JSON バックアップを読み込みました。画像 ${assets.length}件を復元しました。`);

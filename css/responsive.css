@@ -254,16 +254,6 @@
     flex: 1;
   }
 
-  .list-filter-menu {
-    position: fixed;
-    top: auto;
-    right: 12px;
-    bottom: 42px;
-    left: 12px;
-    width: auto;
-    max-height: 46vh;
-  }
-
   .filter-tabs {
     overflow-x: auto;
   }

@@ -37,10 +37,6 @@ function updateInspectorOrganisation(enabled) {
   const item = activeEntity();
   if (!item) return;
   item.organisation = enabled;
-  if (enabled) {
-    item.x = Math.max(0, Math.min(BOARD_WIDTH - item.groupWidth, item.x));
-    item.y = Math.max(0, Math.min(BOARD_HEIGHT - item.groupHeight, item.y));
-  }
   if (!enabled) {
     activeProject().entities.forEach((candidate) => {
       if (candidate.parentGroupId === item.id) candidate.parentGroupId = "";

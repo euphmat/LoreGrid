@@ -322,6 +322,88 @@ function getAllRenderableLinks(items) {
   return links;
 }
 
+function boardExtentSize(item) {
+  if (item.organisation) {
+    return { width: item.groupWidth, height: item.groupHeight };
+  }
+  const card = $(`[data-board-id="${CSS.escape(item.id)}"]`, dom.boardCards);
+  return {
+    width: Number(card?.offsetWidth) || 188,
+    height: Number(card?.offsetHeight) || (item.imageId || item.image ? 180 : 108),
+  };
+}
+
+function calculateBoardCanvasMetrics() {
+  const zoom = Number(state.settings.boardZoom) || 1;
+  const paddingX = Math.max(
+    BOARD_EDGE_PADDING_X,
+    (Number(dom.boardViewport.clientWidth) || 0) / zoom,
+  );
+  const paddingY = Math.max(
+    BOARD_EDGE_PADDING_Y,
+    (Number(dom.boardViewport.clientHeight) || 0) / zoom,
+  );
+  const entities = activeProject().entities;
+  let minimumX = 0;
+  let minimumY = 0;
+  let maximumX = BOARD_MIN_WIDTH;
+  let maximumY = BOARD_MIN_HEIGHT;
+  if (entities.length) {
+    minimumX = Number.POSITIVE_INFINITY;
+    minimumY = Number.POSITIVE_INFINITY;
+    maximumX = Number.NEGATIVE_INFINITY;
+    maximumY = Number.NEGATIVE_INFINITY;
+    entities.forEach((item) => {
+      const size = boardExtentSize(item);
+      minimumX = Math.min(minimumX, item.x);
+      minimumY = Math.min(minimumY, item.y);
+      maximumX = Math.max(maximumX, item.x + size.width);
+      maximumY = Math.max(maximumY, item.y + size.height);
+    });
+  }
+  const originX = Math.floor(minimumX - paddingX);
+  const originY = Math.floor(minimumY - paddingY);
+  const focusItem = activeEntity() || entities[0] || null;
+  return {
+    originX,
+    originY,
+    width: Math.ceil(maximumX + paddingX - originX),
+    height: Math.ceil(maximumY + paddingY - originY),
+    focusX: focusItem ? focusItem.x - 120 : 0,
+    focusY: focusItem ? focusItem.y - 90 : 0,
+  };
+}
+
+function updateBoardCanvasMetrics() {
+  const previousOriginX = boardOriginX;
+  const previousOriginY = boardOriginY;
+  const projectChanged = boardMetricsProjectId !== state.activeProjectId;
+  const metrics = calculateBoardCanvasMetrics();
+  boardOriginX = metrics.originX;
+  boardOriginY = metrics.originY;
+  boardCanvasWidth = metrics.width;
+  boardCanvasHeight = metrics.height;
+  dom.boardCanvas.style.width = `${boardCanvasWidth}px`;
+  dom.boardCanvas.style.height = `${boardCanvasHeight}px`;
+  dom.boardCards.style.transform =
+    `translate3d(${-boardOriginX}px, ${-boardOriginY}px, 0)`;
+  const zoom = Number(state.settings.boardZoom) || 1;
+  if (projectChanged) {
+    dom.boardViewport.scrollLeft = Math.max(
+      0,
+      (metrics.focusX - boardOriginX) * zoom,
+    );
+    dom.boardViewport.scrollTop = Math.max(
+      0,
+      (metrics.focusY - boardOriginY) * zoom,
+    );
+  } else {
+    dom.boardViewport.scrollLeft += (previousOriginX - boardOriginX) * zoom;
+    dom.boardViewport.scrollTop += (previousOriginY - boardOriginY) * zoom;
+  }
+  boardMetricsProjectId = state.activeProjectId;
+}
+
 const RELATION_ANCHORS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const DIAGONAL_RELATION_ANCHORS = new Set(["nw", "ne", "se", "sw"]);
 
@@ -415,7 +497,10 @@ function closestRelationAnchorPair(
 
 function renderRelationLines(items) {
   const links = getAllRenderableLinks(items);
-  dom.relationLines.setAttribute("viewBox", `0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`);
+  dom.relationLines.setAttribute(
+    "viewBox",
+    `${boardOriginX} ${boardOriginY} ${boardCanvasWidth} ${boardCanvasHeight}`,
+  );
   dom.relationLines.innerHTML = `
     <defs>
       <marker id="relation-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -575,6 +660,7 @@ function organisationGroupMarkup(item) {
 }
 
 function renderBoard() {
+  updateBoardCanvasMetrics();
   const items = visibleEntities();
   const groups = items
     .filter((item) => item.organisation)
@@ -601,6 +687,10 @@ function renderBoard() {
     })
     .join("");
   renderRelationLines(items);
+  if (!dom.relationEditor.classList.contains("is-hidden")) {
+    const { source, target, link } = relationBeingEdited();
+    if (source && target && link) positionRelationEditor(source, target, link);
+  }
   const zoom = Math.min(1.4, Math.max(0.6, Number(state.settings.boardZoom) || 1));
   dom.boardCanvas.style.zoom = zoom;
   $("#zoom-label").textContent = `${Math.round(zoom * 100)}%`;
@@ -842,46 +932,42 @@ function hasActiveListFilters() {
 
 function listFilterControlMarkup(column) {
   const selected = activeListFilterValues(column);
-  const selectedOptions = column.options.filter((option) => selected.includes(option.id));
-  const summary =
-    selectedOptions.length === 1
-      ? selectedOptions[0].label
-      : selectedOptions.length > 1
-        ? `${selectedOptions.length}件を選択`
-        : "すべて";
   return `
-    <details class="list-filter-control ${selected.length ? "is-active" : ""}">
-      <summary>
-        <span>${escapeHTML(column.label)}</span>
-        <strong>${escapeHTML(summary)}</strong>
-        <i aria-hidden="true"></i>
-      </summary>
-      <div class="list-filter-menu">
-        <div class="list-filter-menu-heading">
-          <strong>${escapeHTML(column.label)}</strong>
-          <small>複数選択できます</small>
-        </div>
+    <div class="list-filter-control ${selected.length ? "is-active" : ""}">
+      <span class="list-filter-column-label">${escapeHTML(column.label)}</span>
+      <div
+        class="list-filter-option-buttons"
+        role="group"
+        aria-label="${escapeHTML(column.label)}で絞り込む"
+      >
+        <button
+          type="button"
+          class="list-filter-button is-all ${selected.length ? "" : "is-selected"}"
+          data-list-filter-all="${escapeHTML(column.id)}"
+          aria-pressed="${String(!selected.length)}"
+        >すべて</button>
         ${column.options
           .map((option) => {
             const count = activeProject().entities.filter(
               (item) => String(item.fields?.[column.id] ?? "") === option.id,
             ).length;
             return `
-              <label class="list-filter-option" style="--list-color:${escapeHTML(option.color)}">
-                <input
-                  type="checkbox"
-                  data-list-filter-column="${escapeHTML(column.id)}"
-                  data-list-filter-option="${escapeHTML(option.id)}"
-                  ${selected.includes(option.id) ? "checked" : ""}
-                />
+              <button
+                type="button"
+                class="list-filter-button ${selected.includes(option.id) ? "is-selected" : ""}"
+                style="--list-color:${escapeHTML(option.color)}"
+                data-list-filter-column="${escapeHTML(column.id)}"
+                data-list-filter-option="${escapeHTML(option.id)}"
+                aria-pressed="${String(selected.includes(option.id))}"
+              >
                 <span class="list-filter-dot" aria-hidden="true"></span>
                 <span>${escapeHTML(option.label)}</span>
                 <small>${count}</small>
-              </label>`;
+              </button>`;
           })
           .join("")}
       </div>
-    </details>`;
+    </div>`;
 }
 
 function renderAll() {

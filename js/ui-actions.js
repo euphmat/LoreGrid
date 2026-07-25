@@ -170,22 +170,28 @@ function relationBeingEdited() {
 }
 
 function positionRelationEditor(source, target, link) {
-  const sourceAnchor = link.sourceAnchor || automaticAnchor(source, target);
-  const targetAnchor = link.targetAnchor || oppositeAnchor(sourceAnchor);
+  const automaticPair = closestRelationAnchorPair(
+    source,
+    target,
+    link.sourceAnchor,
+    link.targetAnchor,
+  );
+  const sourceAnchor = link.sourceAnchor || automaticPair.sourceAnchor;
+  const targetAnchor = link.targetAnchor || automaticPair.targetAnchor;
   const start = anchorPoint(source, sourceAnchor);
   const end = anchorPoint(target, targetAnchor);
   const midpoint = {
-    x: (start.x + end.x) / 2,
-    y: (start.y + end.y) / 2,
+    x: (start.x + end.x) / 2 - boardOriginX,
+    y: (start.y + end.y) / 2 - boardOriginY,
   };
   const editorWidth = 292;
   const editorHeight = 196;
   const preferredLeft =
-    midpoint.x + editorWidth + 24 < BOARD_WIDTH
+    midpoint.x + editorWidth + 24 < boardCanvasWidth
       ? midpoint.x + 14
       : midpoint.x - editorWidth - 14;
-  dom.relationEditor.style.left = `${Math.max(10, Math.min(BOARD_WIDTH - editorWidth - 10, preferredLeft))}px`;
-  dom.relationEditor.style.top = `${Math.max(10, Math.min(BOARD_HEIGHT - editorHeight - 10, midpoint.y - 24))}px`;
+  dom.relationEditor.style.left = `${Math.max(10, Math.min(boardCanvasWidth - editorWidth - 10, preferredLeft))}px`;
+  dom.relationEditor.style.top = `${Math.max(10, Math.min(boardCanvasHeight - editorHeight - 10, midpoint.y - 24))}px`;
 }
 
 function syncRelationEditorControls(link) {
@@ -202,13 +208,14 @@ function openRelationEditor(sourceId, targetId, sourceAnchor = "", targetAnchor 
   if (!source || !target || source.id === target.id) return;
   let link = source.links.find((candidate) => candidate.targetId === target.id);
   if (!link) {
-    const resolvedSourceAnchor = sourceAnchor || automaticAnchor(source, target);
+    const automaticPair = closestRelationAnchorPair(source, target);
+    const resolvedSourceAnchor = sourceAnchor || automaticPair.sourceAnchor;
     link = {
       targetId: target.id,
       memo: "",
       arrow: "end",
       sourceAnchor: resolvedSourceAnchor,
-      targetAnchor: targetAnchor || oppositeAnchor(resolvedSourceAnchor),
+      targetAnchor: targetAnchor || automaticPair.targetAnchor,
     };
     source.links.push(link);
     source.updatedAt = now();
@@ -318,6 +325,7 @@ async function resetAllData() {
     clearPendingProjectBanner();
     localStorage.removeItem(STORAGE_KEY);
     state = seedState();
+    boardMetricsProjectId = "";
     closeAllModals();
     saveImmediately();
     renderAll();
@@ -400,10 +408,20 @@ function cycleSort() {
 }
 
 function setBoardZoom(delta) {
+  const before = Number(state.settings.boardZoom) || 1;
+  const pointerX = dom.boardViewport.clientWidth / 2;
+  const pointerY = dom.boardViewport.clientHeight / 2;
+  const logicalX =
+    boardOriginX + (dom.boardViewport.scrollLeft + pointerX) / before;
+  const logicalY =
+    boardOriginY + (dom.boardViewport.scrollTop + pointerY) / before;
   state.settings.boardZoom = Math.min(
     1.4,
-    Math.max(0.6, (Number(state.settings.boardZoom) || 1) + delta),
+    Math.max(0.6, before + delta),
   );
+  const next = state.settings.boardZoom;
   renderBoard();
+  dom.boardViewport.scrollLeft = (logicalX - boardOriginX) * next - pointerX;
+  dom.boardViewport.scrollTop = (logicalY - boardOriginY) * next - pointerY;
   markChanged("ボードの表示倍率を変更");
 }

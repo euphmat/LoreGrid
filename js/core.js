@@ -7,8 +7,10 @@ const SCHEMA_VERSION = 4;
 const IMAGE_DB_NAME = "loregrid.assets.v1";
 const IMAGE_DB_VERSION = 1;
 const IMAGE_STORE_NAME = "images";
-const BOARD_WIDTH = 1800;
-const BOARD_HEIGHT = 1050;
+const BOARD_MIN_WIDTH = 1800;
+const BOARD_MIN_HEIGHT = 1050;
+const BOARD_EDGE_PADDING_X = 900;
+const BOARD_EDGE_PADDING_Y = 650;
 const COLOR_PALETTE = [
   "#F8F6EF", "#E8E3D8", "#D6D0C4", "#B8B2A8",
   "#F3C6C0", "#E98F86", "#CF5E55", "#923E3A",
@@ -277,6 +279,11 @@ let imageDatabasePromise = null;
 let pendingProjectBannerFile = null;
 let pendingProjectBannerURL = "";
 let projectBannerRemovalRequested = false;
+let boardOriginX = -BOARD_EDGE_PADDING_X;
+let boardOriginY = -BOARD_EDGE_PADDING_Y;
+let boardCanvasWidth = BOARD_MIN_WIDTH + BOARD_EDGE_PADDING_X * 2;
+let boardCanvasHeight = BOARD_MIN_HEIGHT + BOARD_EDGE_PADDING_Y * 2;
+let boardMetricsProjectId = "";
 
 const dom = {
   app: $("#app"),

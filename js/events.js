@@ -269,28 +269,25 @@ dom.search.addEventListener("input", () => {
   markChanged("検索中");
 });
 
-dom.listFilterBar.addEventListener("change", (event) => {
-  const checkbox = event.target.closest(
-    "[data-list-filter-column][data-list-filter-option]",
-  );
-  if (!checkbox) return;
-  updateListFilter(
-    checkbox.dataset.listFilterColumn,
-    checkbox.dataset.listFilterOption,
-    checkbox.checked,
-  );
-});
 dom.listFilterBar.addEventListener("click", (event) => {
   if (event.target.closest("#clear-list-filters")) {
     clearListFilters();
     return;
   }
-  const summary = event.target.closest(".list-filter-control > summary");
-  if (!summary) return;
-  const current = summary.closest("details");
-  $$(".list-filter-control[open]", dom.listFilterBar).forEach((details) => {
-    if (details !== current) details.removeAttribute("open");
-  });
+  const all = event.target.closest("[data-list-filter-all]");
+  if (all) {
+    clearListFilterColumn(all.dataset.listFilterAll);
+    return;
+  }
+  const button = event.target.closest(
+    "[data-list-filter-column][data-list-filter-option]",
+  );
+  if (!button) return;
+  updateListFilter(
+    button.dataset.listFilterColumn,
+    button.dataset.listFilterOption,
+    button.getAttribute("aria-pressed") !== "true",
+  );
 });
 
 dom.tableHead.addEventListener("click", (event) => {
@@ -488,11 +485,6 @@ document.addEventListener("click", (event) => {
   if (clear) clearFilters();
   if (add) createEntityInInspector();
   if (!event.target.closest("[data-db-list-picker]")) closeDatabaseListPickers();
-  if (!event.target.closest(".list-filter-control")) {
-    $$(".list-filter-control[open]", dom.listFilterBar).forEach((details) =>
-      details.removeAttribute("open"),
-    );
-  }
   if (
     !dom.relationEditor.classList.contains("is-hidden") &&
     !event.target.closest("#relation-editor") &&
@@ -581,6 +573,7 @@ window.addEventListener("storage", (event) => {
   if (event.key !== STORAGE_KEY || !event.newValue) return;
   try {
     state = normalizeState(JSON.parse(event.newValue));
+    boardMetricsProjectId = "";
     renderAll();
     toast("別のタブでの変更を反映しました。", "↻");
   } catch {

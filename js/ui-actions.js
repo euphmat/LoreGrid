@@ -93,7 +93,7 @@ function renderCommandResults() {
     : activeProject().entities
         .filter((item) =>
           matches(
-            `${item.title} ${item.body} ${activeProject().columns
+            `${item.title} ${item.epithet || ""} ${item.body} ${activeProject().columns
               .map((column) =>
                 column.kind === "list"
                   ? listOptionForValue(column, item.fields?.[column.id])?.label || ""
@@ -106,7 +106,7 @@ function renderCommandResults() {
         .map((item) => ({
           id: `entity-${item.id}`,
           title: item.title,
-          subtitle: "項目",
+          subtitle: item.epithet || "項目",
           icon: item.title.slice(0, 1),
           color: activeProject().accent,
           action: () => selectEntity(item.id),

@@ -33,6 +33,29 @@ function updateInspectorValue(target) {
   markChanged("詳細の変更を保存しました");
 }
 
+function showInspectorEpithetField() {
+  const field = $("[data-inspector-epithet-field]", dom.inspectorContent);
+  const addButton = $("[data-add-inspector-epithet]", dom.inspectorContent);
+  field?.classList.remove("is-hidden");
+  addButton?.classList.add("is-hidden");
+  window.setTimeout(
+    () => $('[data-inspector-field="epithet"]', field)?.focus(),
+    0,
+  );
+}
+
+function removeInspectorEpithet() {
+  const item = activeEntity();
+  if (!item) return;
+  item.epithet = "";
+  item.updatedAt = now();
+  updateProjectTimestamp();
+  renderDatabase();
+  renderBoard();
+  renderInspector();
+  markChanged("二つ名を削除しました");
+}
+
 function updateInspectorOrganisation(enabled) {
   const item = activeEntity();
   if (!item) return;

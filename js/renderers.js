@@ -113,6 +113,9 @@ function renderDatabase() {
               </span>
               <span class="entity-name-copy">
                 <strong>${escapeHTML(item.title)}</strong>
+                ${item.epithet
+                  ? `<small class="entity-epithet">${escapeHTML(item.epithet)}</small>`
+                  : ""}
               </span>
             </div>
           </td>
@@ -1288,6 +1291,9 @@ function organisationGroupMarkup(item) {
       <header class="board-group-header">
         <span class="board-group-kicker"><i aria-hidden="true"></i>ORGANISATION</span>
         <strong>${escapeHTML(item.title)}</strong>
+        ${item.epithet
+          ? `<span class="board-group-epithet">${escapeHTML(item.epithet)}</span>`
+          : ""}
         <span class="board-group-count">${memberCount}項目</span>
       </header>
       <div class="board-group-drop-hint">項目をここへドラッグして内包</div>
@@ -1320,6 +1326,9 @@ function renderBoard() {
           style="left:${item.x}px;top:${item.y}px;--entity-color:${escapeHTML(activeProject().accent)}">
           ${imageMarkup(item, "board-card-image")}
           <div class="board-card-body">
+            ${item.epithet
+              ? `<p class="board-card-epithet">${escapeHTML(item.epithet)}</p>`
+              : ""}
             <h3>${escapeHTML(item.title)}</h3>
             ${item.body?.trim()
               ? `<p class="board-card-description">${escapeHTML(item.body)}</p>`
@@ -1447,10 +1456,32 @@ function renderInspector() {
       </button>
     </div>
     <div class="inspector-body" style="--entity-color:${escapeHTML(activeProject().accent)}">
-      <label class="inspector-field">
-        <span>名称</span>
-        <input data-inspector-field="title" value="${escapeHTML(item.title)}" maxlength="80" />
-      </label>
+      <div class="inspector-name-editor">
+        <label class="inspector-field">
+          <span>名称</span>
+          <input data-inspector-field="title" value="${escapeHTML(item.title)}" maxlength="80" />
+        </label>
+        <label
+          class="inspector-field inspector-epithet-field ${item.epithet ? "" : "is-hidden"}"
+          data-inspector-epithet-field
+        >
+          <span class="inspector-optional-heading">
+            <span>二つ名 <small>任意</small></span>
+            <button type="button" data-remove-inspector-epithet>削除</button>
+          </span>
+          <input
+            data-inspector-field="epithet"
+            value="${escapeHTML(item.epithet || "")}"
+            maxlength="80"
+            placeholder="例：灰燼の魔術師"
+          />
+        </label>
+        <button
+          type="button"
+          class="inspector-optional-add ${item.epithet ? "is-hidden" : ""}"
+          data-add-inspector-epithet
+        >＋ 二つ名を追加</button>
+      </div>
       ${organisationMembershipMarkup(item)}
       <section class="inspector-section organisation-settings">
         <label class="inspector-check organisation-toggle">

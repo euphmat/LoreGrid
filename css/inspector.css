@@ -206,6 +206,61 @@
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+.inspector-name-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.inspector-name-editor .inspector-field {
+  margin-top: 0;
+}
+
+.inspector-optional-add {
+  justify-self: start;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.inspector-optional-add:hover {
+  text-decoration: underline;
+}
+
+.inspector-optional-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inspector-optional-heading > span {
+  color: var(--ink-faint);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.inspector-optional-heading small {
+  margin-left: 3px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.inspector-optional-heading button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 8px;
+}
+
+.inspector-optional-heading button:hover {
+  color: #c85a52;
+}
+
 .inspector-check,
 .custom-checkbox-field {
   display: flex;

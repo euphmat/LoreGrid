@@ -320,6 +320,25 @@
                 <span>名称 <em>必須</em></span>
                 <input id="entity-title" name="title" required maxlength="80" placeholder="項目名を入力" />
               </label>
+              <div class="entity-epithet-editor field-wide">
+                <button
+                  id="show-entity-epithet"
+                  class="optional-field-add"
+                  type="button"
+                >＋ 二つ名を追加</button>
+                <label id="entity-epithet-field" class="field is-hidden">
+                  <span class="optional-field-heading">
+                    <span>二つ名 <small>任意</small></span>
+                    <button id="remove-entity-epithet" type="button">削除</button>
+                  </span>
+                  <input
+                    id="entity-epithet"
+                    name="epithet"
+                    maxlength="80"
+                    placeholder="例：灰燼の魔術師"
+                  />
+                </label>
+              </div>
               <div id="custom-fields-form" class="custom-fields-form field-wide"></div>
             </div>
 

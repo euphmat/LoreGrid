@@ -590,12 +590,24 @@
 }
 
 .entity-name-copy {
+  display: grid;
   min-width: 0;
+  gap: 3px;
 }
 
 .entity-name-copy strong {
   display: block;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entity-epithet {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-faint);
+  font-size: 8px;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

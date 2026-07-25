@@ -162,6 +162,49 @@
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+.entity-epithet-editor {
+  display: grid;
+}
+
+.optional-field-add {
+  justify-self: start;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.optional-field-add:hover {
+  text-decoration: underline;
+}
+
+.optional-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.optional-field-heading > span {
+  color: var(--ink-muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.optional-field-heading button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 8px;
+}
+
+.optional-field-heading button:hover {
+  color: #c85a52;
+}
+
 .custom-fields-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

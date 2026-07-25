@@ -476,6 +476,8 @@ function openEntityModal(id = null) {
   const item = id ? getEntityById(id) : null;
   $("#entity-id").value = item?.id || "";
   $("#entity-title").value = item?.title || "";
+  $("#entity-epithet").value = item?.epithet || "";
+  setEntityEpithetEditorVisibility(Boolean(item?.epithet));
   $("#custom-fields-form").innerHTML = activeProject().columns
     .map((column) => customFieldFormMarkup(column, item?.fields?.[column.id]))
     .join("");
@@ -505,6 +507,13 @@ function openEntityModal(id = null) {
   updateEditorGutter();
   dom.entityModal.classList.remove("is-hidden");
   window.setTimeout(() => $("#entity-title").focus(), 30);
+}
+
+function setEntityEpithetEditorVisibility(visible, { focus = false } = {}) {
+  $("#entity-epithet-field").classList.toggle("is-hidden", !visible);
+  $("#show-entity-epithet").classList.toggle("is-hidden", visible);
+  if (!visible) $("#entity-epithet").value = "";
+  if (visible && focus) window.setTimeout(() => $("#entity-epithet").focus(), 0);
 }
 
 function customFieldFormMarkup(column, value) {
@@ -578,6 +587,7 @@ function submitEntity(event) {
   const data = {
     id: existing?.id || uid("ent"),
     title,
+    epithet: $("#entity-epithet").value.trim().slice(0, 80),
     body: dom.bodyEditor.value,
     fields: Object.fromEntries(
       $$("[data-custom-field]", dom.entityForm).map((input) => [

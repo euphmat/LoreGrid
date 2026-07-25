@@ -3,7 +3,7 @@
 // Shared state, persistence, image storage, and common helpers.
 
 const STORAGE_KEY = "loregrid.state.v2";
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const IMAGE_DB_NAME = "loregrid.assets.v1";
 const IMAGE_DB_VERSION = 1;
 const IMAGE_STORE_NAME = "images";
@@ -90,6 +90,10 @@ function normalizeLinkMemo(link) {
 const entity = (data) => ({
   id: data.id || uid("ent"),
   title: data.title || "名称未設定",
+  epithet:
+    typeof data.epithet === "string"
+      ? data.epithet.trim().slice(0, 80)
+      : "",
   body: data.body || "",
   fields: data.fields && typeof data.fields === "object" ? { ...data.fields } : {},
   image: data.image || "",
@@ -588,6 +592,7 @@ function visibleEntities() {
     if (!normalizedQuery) return true;
     const haystack = [
       item.title,
+      item.epithet,
       item.body,
       ...activeProject().columns.map((column) => {
         const value = item.fields?.[column.id];

@@ -17,13 +17,6 @@
 
 .board-canvas {
   position: relative;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--line-strong) 38%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--line-strong) 38%, transparent) 1px, transparent 1px),
-    linear-gradient(to right, color-mix(in srgb, var(--line-strong) 68%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--line-strong) 68%, transparent) 1px, transparent 1px);
-  background-position: 0 0;
-  background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
 }
 
 .board-viewport::-webkit-scrollbar {
@@ -396,6 +389,16 @@
   white-space: nowrap;
 }
 
+.board-group-epithet {
+  max-width: 28%;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--group-color) 68%, var(--ink-faint));
+  font-size: 8px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .board-group-count {
   flex: 0 0 auto;
   margin-left: auto;
@@ -622,6 +625,21 @@
   font-family: "BIZ UDPMincho", "Yu Mincho", serif;
   font-size: 13px;
   font-weight: 600;
+}
+
+.board-card-epithet {
+  overflow: hidden;
+  margin: 2px 0 0;
+  color: var(--entity-color);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-card-epithet + h3 {
+  margin-top: 3px;
 }
 
 .board-card-description {

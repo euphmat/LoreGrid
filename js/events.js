@@ -158,10 +158,14 @@ dom.inspectorContent.addEventListener("click", (event) => {
   const removeImage = event.target.closest("[data-remove-inspector-image]");
   const related = event.target.closest("[data-related-id]");
   const organisationColor = event.target.closest("[data-organisation-color]");
+  const addEpithet = event.target.closest("[data-add-inspector-epithet]");
+  const removeEpithet = event.target.closest("[data-remove-inspector-epithet]");
   if (close) closeInspector();
   else if (removeImage) void removeInspectorImage(removeImage.dataset.removeInspectorImage);
   else if (related) selectEntity(related.dataset.relatedId);
   else if (organisationColor) setOrganisationColor(organisationColor.dataset.organisationColor);
+  else if (addEpithet) showInspectorEpithetField();
+  else if (removeEpithet) removeInspectorEpithet();
 });
 dom.inspectorContent.addEventListener("input", (event) => {
   if (
@@ -385,6 +389,12 @@ $("#column-kind").addEventListener("change", () => {
   updateColumnListSettingsVisibility();
 });
 $("#add-list-option").addEventListener("click", () => addListOptionEditorRow());
+$("#show-entity-epithet").addEventListener("click", () => {
+  setEntityEpithetEditorVisibility(true, { focus: true });
+});
+$("#remove-entity-epithet").addEventListener("click", () => {
+  setEntityEpithetEditorVisibility(false);
+});
 $("#add-managed-column").addEventListener("click", () => switchDatabaseColumnEditor());
 $("#column-manager-list").addEventListener("click", (event) => {
   const select = event.target.closest("[data-select-managed-column]");

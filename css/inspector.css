@@ -230,11 +230,87 @@
 }
 
 .organisation-toggle {
-  align-items: flex-start;
+  position: relative;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--surface-2), var(--surface));
+  cursor: pointer;
+  transition: border-color 140ms, box-shadow 140ms, transform 140ms;
 }
 
-.organisation-toggle > span {
+.organisation-toggle:hover {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--line-strong));
+  transform: translateY(-1px);
+}
+
+.organisation-toggle:has(input:checked) {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--line-strong));
+  box-shadow:
+    inset 0 0 0 1px var(--accent-soft),
+    0 5px 16px var(--accent-soft);
+}
+
+.organisation-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.organisation-toggle > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.organisation-badge {
+  display: inline-flex;
+  height: 25px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-3);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.1);
+  color: var(--ink-faint);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  transition: background 140ms, border-color 140ms, color 140ms;
+}
+
+.organisation-badge i {
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--ink-faint);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.organisation-badge b {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+.organisation-toggle > input:checked + .organisation-badge {
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--line-strong));
+  background: color-mix(in srgb, var(--accent) 17%, var(--surface));
+  color: var(--accent);
+}
+
+.organisation-toggle > input:checked + .organisation-badge i {
+  background: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 9px var(--accent);
+}
+
+.organisation-copy {
   display: grid;
+  min-width: 0;
   gap: 3px;
 }
 
@@ -275,12 +351,10 @@
   overflow: hidden;
   border: 1px solid var(--line-strong);
   border-radius: 5px;
-  background:
-    linear-gradient(
-      color-mix(in srgb, var(--organisation-color) 32%, transparent),
-      color-mix(in srgb, var(--organisation-color) 32%, transparent)
-    ),
-    repeating-conic-gradient(#d8d5cf 0 25%, #f6f3ec 0 50%) 50% / 8px 8px;
+  background: var(--organisation-color);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+    inset 0 -7px 12px rgba(0, 0, 0, 0.08);
 }
 
 .organisation-color-swatch:hover {
@@ -370,4 +444,3 @@
   color: var(--ink-faint);
   font-size: 7px;
 }
-

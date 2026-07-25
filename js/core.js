@@ -3,7 +3,7 @@
 // Shared state, persistence, image storage, and common helpers.
 
 const STORAGE_KEY = "loregrid.state.v2";
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const IMAGE_DB_NAME = "loregrid.assets.v1";
 const IMAGE_DB_VERSION = 1;
 const IMAGE_STORE_NAME = "images";
@@ -64,6 +64,16 @@ function normalizeListOptions(options) {
     .slice(0, 50);
 }
 
+function normalizeLinkMemo(link) {
+  if (typeof link?.memo === "string") return link.memo.slice(0, 240);
+  const legacyLabel = String(link?.label || "").trim();
+  const legacyAction = String(link?.action || "").trim();
+  if (legacyLabel && legacyLabel !== "関連" && legacyAction) {
+    return `${legacyLabel}：${legacyAction}`.slice(0, 240);
+  }
+  return (legacyAction || (legacyLabel === "関連" ? "" : legacyLabel)).slice(0, 240);
+}
+
 const entity = (data) => ({
   id: data.id || uid("ent"),
   title: data.title || "名称未設定",
@@ -86,8 +96,7 @@ const entity = (data) => ({
         .filter((link) => link?.targetId)
         .map((link) => ({
           targetId: link.targetId,
-          label: link.label || "関連",
-          action: link.action || "",
+          memo: normalizeLinkMemo(link),
           arrow: ["none", "start", "end", "both"].includes(link.arrow)
             ? link.arrow
             : "none",
@@ -270,6 +279,8 @@ const dom = {
   boardCards: $("#board-cards"),
   relationLines: $("#relation-lines"),
   relationDraftLines: $("#relation-draft-lines"),
+  relationEditor: $("#relation-editor"),
+  relationMemo: $("#relation-memo"),
   workspaceHeader: $("#workspace-header"),
   workspaceBanner: $("#workspace-banner"),
   inspector: $("#inspector"),
@@ -279,7 +290,6 @@ const dom = {
   projectModal: $("#project-modal"),
   columnModal: $("#column-modal"),
   settingsModal: $("#settings-modal"),
-  relationModal: $("#relation-modal"),
   commandModal: $("#command-modal"),
   helpModal: $("#help-modal"),
   commandInput: $("#command-input"),
@@ -287,7 +297,6 @@ const dom = {
   entityForm: $("#entity-form"),
   projectForm: $("#project-form"),
   columnForm: $("#column-form"),
-  relationForm: $("#relation-form"),
   projectBannerDrop: $("#project-banner-drop"),
   projectBannerPreview: $("#project-banner-preview"),
   bodyEditor: $("#entity-body"),

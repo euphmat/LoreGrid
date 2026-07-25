@@ -130,7 +130,7 @@ function beginRelationDrag(event, handle) {
       : "";
     clearRelationDraft();
     if (completedTarget) {
-      openRelationModal(sourceId, completedTarget.dataset.boardId, sourceAnchor, targetAnchor);
+      openRelationEditor(sourceId, completedTarget.dataset.boardId, sourceAnchor, targetAnchor);
     }
   };
 
@@ -200,6 +200,8 @@ function beginBoardDrag(event, card) {
   const item = getEntityById(card.dataset.boardId);
   if (!item) return;
   event.preventDefault();
+  dom.boardViewport.focus({ preventScroll: true });
+  if (!dom.relationEditor.classList.contains("is-hidden")) closeRelationEditor();
   state.activeEntityId = item.id;
   $$("[data-board-id]", dom.boardCards).forEach((node) =>
     node.classList.toggle("is-selected", node === card),
@@ -282,6 +284,8 @@ function beginGroupResize(event, handle) {
   if (!item?.organisation) return;
   event.preventDefault();
   event.stopPropagation();
+  dom.boardViewport.focus({ preventScroll: true });
+  if (!dom.relationEditor.classList.contains("is-hidden")) closeRelationEditor();
   state.activeEntityId = item.id;
   $$("[data-board-id]", dom.boardCards).forEach((node) =>
     node.classList.toggle("is-selected", node.dataset.boardId === item.id),
@@ -356,7 +360,12 @@ function beginGroupResize(event, handle) {
 }
 
 function beginBoardPan(event) {
-  if (event.button !== 0 || event.target.closest("[data-board-id]")) return;
+  if (
+    event.button !== 0 ||
+    event.target.closest(
+      "[data-board-id], [data-relation-source][data-relation-target], #relation-editor",
+    )
+  ) return;
   event.preventDefault();
   const startX = event.clientX;
   const startY = event.clientY;
@@ -376,4 +385,3 @@ function beginBoardPan(event) {
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", end, { once: true });
 }
-

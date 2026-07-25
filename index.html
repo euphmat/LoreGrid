@@ -236,11 +236,40 @@
                 <svg id="relation-lines" class="relation-lines" aria-hidden="true"></svg>
                 <svg id="relation-draft-lines" class="relation-lines relation-draft-lines" aria-hidden="true"></svg>
                 <div id="board-cards"></div>
+                <aside id="relation-editor" class="relation-editor is-hidden" aria-label="関連を編集">
+                  <header class="relation-editor-header">
+                    <span class="relation-editor-mark" aria-hidden="true"></span>
+                    <div>
+                      <small>LINK MEMO</small>
+                      <strong id="relation-editor-route"></strong>
+                    </div>
+                    <button id="close-relation-editor" type="button" aria-label="関連の編集を閉じる">×</button>
+                  </header>
+                  <label class="relation-memo-field">
+                    <span>Memo</span>
+                    <textarea
+                      id="relation-memo"
+                      rows="3"
+                      maxlength="240"
+                      placeholder="実行した行動や関連性を自由に記録…"
+                    ></textarea>
+                  </label>
+                  <div class="relation-editor-footer">
+                    <div id="relation-arrow-controls" class="relation-arrow-controls" role="group" aria-label="矢印の向き">
+                      <button type="button" data-relation-arrow="none" title="矢印なし">—</button>
+                      <button type="button" data-relation-arrow="start" title="自分へ">←</button>
+                      <button type="button" data-relation-arrow="end" title="相手へ">→</button>
+                      <button type="button" data-relation-arrow="both" title="双方向">↔</button>
+                    </div>
+                    <button id="delete-inline-relation" class="relation-editor-delete" type="button">関連を削除</button>
+                  </div>
+                  <span class="relation-editor-saved">入力内容は自動保存されます</span>
+                </aside>
               </div>
               <div class="board-legend">
                 <span><i class="legend-dot is-selected"></i>選択</span>
                 <span><i class="legend-line"></i>関連</span>
-                <span class="legend-tip">接続点をドラッグして関連を作成・⌘ + ホイールでズーム</span>
+                <span class="legend-tip">線をクリックしてMemoを編集・Backspaceで選択項目を削除</span>
               </div>
             </div>
           </div>
@@ -340,11 +369,11 @@
 
               <div class="form-panel">
                 <div class="panel-label">関連項目</div>
-                <p class="panel-description">ボード上で線として表示されます。</p>
+                <p class="panel-description">ボード上で線として表示され、Memoに行動や関連性を記録できます。</p>
                 <div id="relation-picker" class="relation-picker"></div>
                 <label class="field compact-field">
-                  <span>関連ラベル</span>
-                  <input id="relation-label" placeholder="例：所属 / 宿敵 / 発生地" maxlength="40" />
+                  <span>Memo</span>
+                  <input id="relation-memo-default" placeholder="例：救援した / 同じ組織に所属" maxlength="240" />
                 </label>
               </div>
             </div>
@@ -532,54 +561,6 @@
       </section>
     </div>
 
-    <div id="relation-modal" class="modal-layer is-hidden" role="dialog" aria-modal="true" aria-labelledby="relation-modal-title">
-      <div class="modal-backdrop" data-close-modal="relation"></div>
-      <section class="small-modal-card relation-modal-card">
-        <header class="modal-header">
-          <div>
-            <span>RELATION</span>
-            <h2 id="relation-modal-title">関連を設定</h2>
-          </div>
-          <button class="icon-button" data-close-modal="relation" aria-label="閉じる">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>
-          </button>
-        </header>
-        <form id="relation-form">
-          <input id="relation-source-id" type="hidden" />
-          <input id="relation-target-id" type="hidden" />
-          <input id="relation-source-anchor" type="hidden" />
-          <input id="relation-target-anchor" type="hidden" />
-          <div class="small-form-body">
-            <div id="relation-route" class="relation-route"></div>
-            <label class="field">
-              <span>関係性</span>
-              <input id="relation-name" maxlength="40" placeholder="所属、協力、対立など" />
-            </label>
-            <label class="field">
-              <span>実行した行動</span>
-              <textarea id="relation-action" rows="3" maxlength="160" placeholder="救援した、情報を渡した、攻撃したなど"></textarea>
-            </label>
-            <label class="field">
-              <span>矢印</span>
-              <select id="relation-arrow">
-                <option value="end">相手へ →</option>
-                <option value="start">← 自分へ</option>
-                <option value="both">双方向 ↔</option>
-                <option value="none">矢印なし</option>
-              </select>
-            </label>
-          </div>
-          <footer class="modal-footer">
-            <button id="delete-relation-button" type="button" class="danger-button is-hidden">関連を削除</button>
-            <div class="modal-footer-actions">
-              <button type="button" class="secondary-button" data-close-modal="relation">キャンセル</button>
-              <button type="submit" class="primary-button large">保存する</button>
-            </div>
-          </footer>
-        </form>
-      </section>
-    </div>
-
     <div id="command-modal" class="modal-layer command-layer is-hidden" role="dialog" aria-modal="true" aria-labelledby="command-title">
       <div class="modal-backdrop" data-close-modal="command"></div>
       <section class="command-card">
@@ -622,6 +603,7 @@
               <div><dt><kbd>/</kbd></dt><dd>すばやく検索</dd></div>
               <div><dt><kbd>:</kbd></dt><dd>コマンドパレット</dd></div>
               <div><dt><kbd>d</kbd> / <kbd>b</kbd></dt><dd>DB / ボード表示</dd></div>
+              <div><dt><kbd>Backspace</kbd></dt><dd>ボードの選択項目を削除</dd></div>
               <div><dt><kbd>Esc</kbd><kbd>Esc</kbd></dt><dd>検索を解除</dd></div>
             </dl>
           </div>

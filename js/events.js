@@ -69,9 +69,17 @@ dom.boardCards.addEventListener("pointerdown", (event) => {
 dom.relationLines.addEventListener("click", (event) => {
   const relation = event.target.closest("[data-relation-source][data-relation-target]");
   if (relation) {
-    openRelationModal(relation.dataset.relationSource, relation.dataset.relationTarget);
+    openRelationEditor(relation.dataset.relationSource, relation.dataset.relationTarget);
   }
 });
+
+dom.relationMemo.addEventListener("input", updateRelationMemo);
+$("#relation-arrow-controls").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-relation-arrow]");
+  if (button) updateRelationArrow(button.dataset.relationArrow);
+});
+$("#close-relation-editor").addEventListener("click", closeRelationEditor);
+$("#delete-inline-relation").addEventListener("click", deleteCurrentRelation);
 
 dom.boardCards.addEventListener("dblclick", (event) => {
   const card = event.target.closest("[data-board-id]");
@@ -280,13 +288,11 @@ dom.tableHead.addEventListener("dragend", () => {
 dom.entityForm.addEventListener("submit", submitEntity);
 dom.projectForm.addEventListener("submit", submitProject);
 dom.columnForm.addEventListener("submit", submitDatabaseColumn);
-dom.relationForm.addEventListener("submit", submitRelation);
 $("#delete-entity-button").addEventListener("click", deleteCurrentEntity);
 $("#delete-column-button").addEventListener("click", () => {
   const id = $("#column-id").value;
   if (id) deleteDatabaseColumn(id, { keepEditorOpen: true });
 });
-$("#delete-relation-button").addEventListener("click", deleteCurrentRelation);
 dom.columnForm.addEventListener("input", () => {
   databaseColumnEditorDirty = true;
 });
@@ -336,7 +342,6 @@ $$("[data-close-modal]").forEach((element) => {
     if (modal === "project") closeProjectModal();
     if (modal === "column") closeDatabaseColumnModal();
     if (modal === "settings") closeSettings();
-    if (modal === "relation") closeRelationModal();
     if (modal === "command") closeCommand();
     if (modal === "help") closeHelp();
   });
@@ -413,6 +418,14 @@ document.addEventListener("click", (event) => {
   const add = event.target.closest("#empty-add-entity");
   if (clear) clearFilters();
   if (add) createEntityInInspector();
+  if (
+    !dom.relationEditor.classList.contains("is-hidden") &&
+    !event.target.closest("#relation-editor") &&
+    !event.target.closest("[data-relation-source][data-relation-target]") &&
+    !event.target.closest("[data-connector-handle]")
+  ) {
+    closeRelationEditor();
+  }
 });
 
 document.addEventListener("keydown", (event) => {
@@ -440,6 +453,10 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (event.key === "Escape") {
+    if (!dom.relationEditor.classList.contains("is-hidden")) {
+      closeRelationEditor();
+      return;
+    }
     if (isModalOpen()) {
       closeAllModals();
       return;
@@ -455,7 +472,15 @@ document.addEventListener("keydown", (event) => {
   }
   if (isTyping || isModalOpen() || event.metaKey || event.ctrlKey || event.altKey) return;
 
-  if (event.key === "j") moveSelection(1);
+  if (
+    event.key === "Backspace" &&
+    state.settings.view === "board" &&
+    state.activeEntityId &&
+    dom.relationEditor.classList.contains("is-hidden")
+  ) {
+    event.preventDefault();
+    deleteEntityById(state.activeEntityId);
+  } else if (event.key === "j") moveSelection(1);
   else if (event.key === "k") moveSelection(-1);
   else if (event.key === "Enter" && state.activeEntityId) focusInspectorTitle();
   else if (event.key.toLowerCase() === "n") createEntityInInspector();

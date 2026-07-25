@@ -95,75 +95,128 @@ function closeHelp() {
   dom.helpModal.classList.add("is-hidden");
 }
 
-function openRelationModal(sourceId, targetId, sourceAnchor = "", targetAnchor = "") {
+function relationBeingEdited() {
+  const source = getEntityById(dom.relationEditor.dataset.sourceId);
+  const targetId = dom.relationEditor.dataset.targetId;
+  const link = source?.links.find((candidate) => candidate.targetId === targetId);
+  return { source, target: getEntityById(targetId), link };
+}
+
+function positionRelationEditor(source, target, link) {
+  const sourceAnchor = link.sourceAnchor || automaticAnchor(source, target);
+  const targetAnchor = link.targetAnchor || oppositeAnchor(sourceAnchor);
+  const start = anchorPoint(source, sourceAnchor);
+  const end = anchorPoint(target, targetAnchor);
+  const midpoint = {
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2,
+  };
+  const editorWidth = 292;
+  const editorHeight = 196;
+  const preferredLeft =
+    midpoint.x + editorWidth + 24 < BOARD_WIDTH
+      ? midpoint.x + 14
+      : midpoint.x - editorWidth - 14;
+  dom.relationEditor.style.left = `${Math.max(10, Math.min(BOARD_WIDTH - editorWidth - 10, preferredLeft))}px`;
+  dom.relationEditor.style.top = `${Math.max(10, Math.min(BOARD_HEIGHT - editorHeight - 10, midpoint.y - 24))}px`;
+}
+
+function syncRelationEditorControls(link) {
+  $$("[data-relation-arrow]", dom.relationEditor).forEach((button) => {
+    const selected = button.dataset.relationArrow === link.arrow;
+    button.classList.toggle("is-active", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+}
+
+function openRelationEditor(sourceId, targetId, sourceAnchor = "", targetAnchor = "") {
   const source = getEntityById(sourceId);
   const target = getEntityById(targetId);
   if (!source || !target || source.id === target.id) return;
-  const existing = source.links.find((link) => link.targetId === target.id);
-  $("#relation-source-id").value = source.id;
-  $("#relation-target-id").value = target.id;
-  $("#relation-source-anchor").value =
-    sourceAnchor || existing?.sourceAnchor || automaticAnchor(source, target);
-  $("#relation-target-anchor").value =
-    targetAnchor ||
-    existing?.targetAnchor ||
-    oppositeAnchor($("#relation-source-anchor").value);
-  $("#relation-route").textContent = `${source.title} → ${target.title}`;
-  $("#relation-name").value = existing?.label || "関連";
-  $("#relation-action").value = existing?.action || "";
-  $("#relation-arrow").value = existing?.arrow || "end";
-  $("#delete-relation-button").classList.toggle("is-hidden", !existing);
-  $("#relation-modal-title").textContent = existing ? "関連を編集" : "関連を設定";
-  dom.relationModal.classList.remove("is-hidden");
-  window.setTimeout(() => $("#relation-name").focus(), 30);
-}
-
-function closeRelationModal() {
-  dom.relationModal.classList.add("is-hidden");
-}
-
-function submitRelation(event) {
-  event.preventDefault();
-  const source = getEntityById($("#relation-source-id").value);
-  const targetId = $("#relation-target-id").value;
-  if (!source || !getEntityById(targetId) || source.id === targetId) {
-    closeRelationModal();
-    return;
-  }
-  let link = source.links.find((candidate) => candidate.targetId === targetId);
+  let link = source.links.find((candidate) => candidate.targetId === target.id);
   if (!link) {
-    link = { targetId };
+    const resolvedSourceAnchor = sourceAnchor || automaticAnchor(source, target);
+    link = {
+      targetId: target.id,
+      memo: "",
+      arrow: "end",
+      sourceAnchor: resolvedSourceAnchor,
+      targetAnchor: targetAnchor || oppositeAnchor(resolvedSourceAnchor),
+    };
     source.links.push(link);
+    source.updatedAt = now();
+    updateProjectTimestamp();
+    markChanged("関連を作成しました");
+  } else {
+    const nextSourceAnchor = sourceAnchor || link.sourceAnchor;
+    const nextTargetAnchor = targetAnchor || link.targetAnchor;
+    if (
+      nextSourceAnchor !== link.sourceAnchor ||
+      nextTargetAnchor !== link.targetAnchor
+    ) {
+      link.sourceAnchor = nextSourceAnchor;
+      link.targetAnchor = nextTargetAnchor;
+      source.updatedAt = now();
+      updateProjectTimestamp();
+      markChanged("関連線の接続位置を保存しました");
+    }
   }
-  Object.assign(link, {
-    targetId,
-    label: $("#relation-name").value.trim() || "関連",
-    action: $("#relation-action").value.trim(),
-    arrow: $("#relation-arrow").value,
-    sourceAnchor: $("#relation-source-anchor").value,
-    targetAnchor: $("#relation-target-anchor").value,
-  });
+  dom.relationEditor.dataset.sourceId = source.id;
+  dom.relationEditor.dataset.targetId = target.id;
+  $("#relation-editor-route").textContent = `${source.title} → ${target.title}`;
+  dom.relationMemo.value = link.memo || "";
+  syncRelationEditorControls(link);
+  positionRelationEditor(source, target, link);
+  dom.relationEditor.classList.remove("is-hidden");
+  renderRelationLines(visibleEntities());
+  window.setTimeout(() => {
+    dom.relationMemo.focus();
+    dom.relationMemo.setSelectionRange(dom.relationMemo.value.length, dom.relationMemo.value.length);
+  }, 20);
+}
+
+function closeRelationEditor() {
+  dom.relationEditor.classList.add("is-hidden");
+  delete dom.relationEditor.dataset.sourceId;
+  delete dom.relationEditor.dataset.targetId;
+  renderRelationLines(visibleEntities());
+}
+
+function updateRelationMemo() {
+  const { source, link } = relationBeingEdited();
+  if (!source || !link) return;
+  link.memo = dom.relationMemo.value.slice(0, 240);
   source.updatedAt = now();
   updateProjectTimestamp();
-  closeRelationModal();
-  renderBoard();
+  renderRelationLines(visibleEntities());
   renderInspector();
-  markChanged("関連を保存しました");
+  markChanged("関連のMemoを自動保存しました");
+}
+
+function updateRelationArrow(arrow) {
+  if (!["none", "start", "end", "both"].includes(arrow)) return;
+  const { source, link } = relationBeingEdited();
+  if (!source || !link) return;
+  link.arrow = arrow;
+  source.updatedAt = now();
+  updateProjectTimestamp();
+  syncRelationEditorControls(link);
+  renderRelationLines(visibleEntities());
+  renderInspector();
+  markChanged("関連の矢印を保存しました");
 }
 
 function deleteCurrentRelation() {
-  const source = getEntityById($("#relation-source-id").value);
-  const targetId = $("#relation-target-id").value;
-  const target = getEntityById(targetId);
+  const { source, target } = relationBeingEdited();
   if (!source || !target) return;
-  if (!window.confirm(`「${source.title} → ${target.title}」の関連を削除しますか？`)) return;
-  source.links = source.links.filter((link) => link.targetId !== targetId);
+  source.links = source.links.filter((link) => link.targetId !== target.id);
   source.updatedAt = now();
   updateProjectTimestamp();
-  closeRelationModal();
+  closeRelationEditor();
   renderBoard();
   renderInspector();
   markChanged("関連を削除しました");
+  toast(`「${source.title} → ${target.title}」の関連を削除しました。`, "−");
 }
 
 function openSettings() {
@@ -221,7 +274,7 @@ function closeAllModals() {
   closeProjectModal();
   closeDatabaseColumnModal();
   closeSettings();
-  closeRelationModal();
+  closeRelationEditor();
   closeCommand();
   closeHelp();
 }
@@ -287,4 +340,3 @@ function setBoardZoom(delta) {
   renderBoard();
   markChanged("ボードの表示倍率を変更");
 }
-

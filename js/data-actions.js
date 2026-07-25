@@ -48,6 +48,7 @@ function closeInspector() {
 
 function switchProject(id) {
   if (!state.projects.some((project) => project.id === id)) return;
+  if (!dom.relationEditor.classList.contains("is-hidden")) closeRelationEditor();
   state.activeProjectId = id;
   state.activeEntityId = null;
   state.settings.query = "";
@@ -58,6 +59,9 @@ function switchProject(id) {
 
 function setView(view) {
   if (!["database", "board"].includes(view)) return;
+  if (view !== "board" && !dom.relationEditor.classList.contains("is-hidden")) {
+    closeRelationEditor();
+  }
   state.settings.view = view;
   renderHeader();
   renderViewState();
@@ -352,7 +356,7 @@ function openEntityModal(id = null) {
     .join("");
   dom.bodyEditor.value = item?.body || "";
   dom.imagePath.value = item?.image || "";
-  $("#relation-label").value = "";
+  $("#relation-memo-default").value = "";
   $("#entity-modal-kicker").textContent = item ? "項目を編集" : "新しい項目";
   $("#entity-modal-title").textContent = item ? item.title : "ロアを追加";
   $("#delete-entity-button").classList.toggle("is-hidden", !item);
@@ -443,7 +447,7 @@ function submitEntity(event) {
   const selectedLinks = $$('#relation-picker input[type="checkbox"]:checked').map(
     (input) => input.value,
   );
-  const relationLabel = $("#relation-label").value.trim();
+  const relationMemo = $("#relation-memo-default").value.trim();
   const oldLinks = new Map((existing?.links || []).map((link) => [link.targetId, link]));
   const timestamp = now();
   const data = {
@@ -461,8 +465,7 @@ function submitEntity(event) {
       const oldLink = oldLinks.get(targetId);
       return {
         targetId,
-        label: relationLabel || oldLink?.label || "関連",
-        action: oldLink?.action || "",
+        memo: relationMemo || oldLink?.memo || "",
         arrow: oldLink?.arrow || "end",
         sourceAnchor: oldLink?.sourceAnchor || "",
         targetAnchor: oldLink?.targetAnchor || "",
@@ -499,11 +502,9 @@ function submitEntity(event) {
   toast(existing ? "変更を保存しました。" : "新しい項目を追加しました。");
 }
 
-function deleteCurrentEntity() {
-  const id = $("#entity-id").value;
+function deleteEntityById(id, { closeEntityEditor = false } = {}) {
   const item = getEntityById(id);
-  if (!item) return;
-  if (!window.confirm(`「${item.title}」を削除しますか？\nこの操作は JSON バックアップからのみ復元できます。`)) return;
+  if (!item) return false;
   const project = activeProject();
   project.entities = project.entities.filter((candidate) => candidate.id !== id);
   project.entities.forEach((candidate) => {
@@ -521,10 +522,21 @@ function deleteCurrentEntity() {
   }
   state.activeEntityId = null;
   updateProjectTimestamp();
-  closeEntityModal();
+  if (closeEntityEditor) closeEntityModal();
+  if (
+    dom.relationEditor.dataset.sourceId === id ||
+    dom.relationEditor.dataset.targetId === id
+  ) {
+    closeRelationEditor();
+  }
   renderAll();
   markChanged("項目を削除しました");
   toast(`「${item.title}」を削除しました。`, "−");
+  return true;
+}
+
+function deleteCurrentEntity() {
+  deleteEntityById($("#entity-id").value, { closeEntityEditor: true });
 }
 
 async function duplicateEntity(id) {

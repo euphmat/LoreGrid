@@ -114,28 +114,5 @@ async function removeInspectorImage(id) {
 }
 
 function deleteEntityFromInspector(id) {
-  const item = getEntityById(id);
-  if (!item) return;
-  if (!window.confirm(`「${item.title}」を削除しますか？\nこの操作は JSON バックアップからのみ復元できます。`)) return;
-  const project = activeProject();
-  project.entities = project.entities.filter((candidate) => candidate.id !== id);
-  project.entities.forEach((candidate) => {
-    candidate.links = candidate.links.filter((link) => link.targetId !== id);
-    if (candidate.parentGroupId === id) candidate.parentGroupId = "";
-  });
-  const url = sessionImageURLs.get(id);
-  if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
-  sessionImageURLs.delete(id);
-  missingImageIds.delete(id);
-  if (item.imageId) {
-    void deleteStoredImage(item.imageId).catch((error) =>
-      console.warn("LoreGrid: image could not be deleted.", error),
-    );
-  }
-  state.activeEntityId = null;
-  updateProjectTimestamp();
-  renderAll();
-  markChanged("項目を削除しました");
-  toast(`「${item.title}」を削除しました。`, "−");
+  return deleteEntityById(id);
 }
-

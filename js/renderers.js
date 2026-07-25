@@ -314,10 +314,8 @@ function renderRelationLines(items) {
       const ty = end.y;
       const mx = (sx + tx) / 2;
       const my = (sy + ty) / 2;
-      const combinedLabel = link.action
-        ? `${link.label || "関連"}：${link.action}`
-        : link.label || "関連";
-      const safeLabel = combinedLabel.slice(0, 28);
+      const combinedLabel = link.memo || "Memoを追加";
+      const safeLabel = combinedLabel.replace(/\s+/g, " ").slice(0, 28);
       const labelWidth = Math.max(42, safeLabel.length * 9 + 12);
       const markerStart = ["start", "both"].includes(link.arrow)
         ? 'marker-start="url(#relation-arrow)"'
@@ -326,7 +324,16 @@ function renderRelationLines(items) {
         ? 'marker-end="url(#relation-arrow)"'
         : "";
       return `
-        <g data-relation-source="${escapeHTML(source.id)}" data-relation-target="${escapeHTML(target.id)}">
+        <g
+          class="${
+            dom.relationEditor.dataset.sourceId === source.id &&
+            dom.relationEditor.dataset.targetId === target.id
+              ? "is-editing"
+              : ""
+          }"
+          data-relation-source="${escapeHTML(source.id)}"
+          data-relation-target="${escapeHTML(target.id)}"
+        >
           <title>${escapeHTML(combinedLabel)}</title>
           <path class="relation-line-hit" d="M${sx} ${sy} C${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}" />
           <path class="relation-line" d="M${sx} ${sy} C${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}" ${markerStart} ${markerEnd} />
@@ -418,7 +425,7 @@ function organisationGroupMarkup(item) {
       "
     >
       <header class="board-group-header">
-        <span class="board-group-kicker">ORGANISATION</span>
+        <span class="board-group-kicker"><i aria-hidden="true"></i>ORGANISATION</span>
         <strong>${escapeHTML(item.title)}</strong>
         <span class="board-group-count">${memberCount}項目</span>
       </header>
@@ -524,7 +531,10 @@ function renderInspector() {
       <section class="inspector-section organisation-settings">
         <label class="inspector-check organisation-toggle">
           <input type="checkbox" data-inspector-organisation ${item.organisation ? "checked" : ""} />
-          <span>
+          <span class="organisation-badge" aria-hidden="true">
+            <i></i><b>ORG</b>
+          </span>
+          <span class="organisation-copy">
             <strong>Organisation</strong>
             <small>フリーボードで項目を内包するグループとして扱う</small>
           </span>

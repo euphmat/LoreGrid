@@ -144,7 +144,7 @@ dom.inspectorContent.addEventListener("drop", (event) => {
 $$(".view-button").forEach((button) =>
   button.addEventListener("click", () => setView(button.dataset.view)),
 );
-$("#add-row-button").addEventListener("click", createEntityInInspector);
+$("#add-entity-button").addEventListener("click", createEntityInInspector);
 $("#new-project-button").addEventListener("click", () => openProjectModal());
 $("#edit-project-button").addEventListener("click", () => openProjectModal(state.activeProjectId));
 $("#project-banner-file").addEventListener("change", (event) => {
@@ -245,13 +245,8 @@ dom.listFilterBar.addEventListener("click", (event) => {
 });
 
 dom.tableHead.addEventListener("click", (event) => {
-    const addColumn = event.target.closest("[data-add-db-column]");
     const editColumn = event.target.closest("[data-edit-db-column]");
     const moveColumn = event.target.closest("[data-move-db-column]");
-    if (addColumn) {
-      addDatabaseColumn();
-      return;
-    }
     if (editColumn) {
       openDatabaseColumnModal(editColumn.dataset.editDbColumn);
       return;
@@ -504,7 +499,6 @@ document.addEventListener("keydown", (event) => {
 
   if (
     event.key === "Backspace" &&
-    state.settings.view === "board" &&
     state.activeEntityId &&
     dom.relationEditor.classList.contains("is-hidden")
   ) {

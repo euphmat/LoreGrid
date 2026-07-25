@@ -114,10 +114,6 @@ function updateProjectTimestamp() {
   activeProject().updatedAt = now();
 }
 
-function addDatabaseColumn() {
-  openDatabaseColumnModal();
-}
-
 function listOptionEditorRowMarkup(option = {}) {
   const id = option.id || uid("opt");
   const color = normalizePaletteColor(option.color || COLOR_PALETTE[20]);

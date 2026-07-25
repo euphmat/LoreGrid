@@ -205,19 +205,25 @@
         <section id="content-area" class="content-area">
           <div id="database-view" class="database-view">
             <div class="database-schema-bar">
-              <div>
+              <div class="database-schema-summary">
                 <strong>データベースの列</strong>
                 <span id="database-column-summary">列はまだありません</span>
               </div>
-              <button id="manage-columns-button" type="button" class="secondary-button">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 6h16M4 12h16M4 18h16"></path>
-                  <circle cx="9" cy="6" r="1.5"></circle>
-                  <circle cx="15" cy="12" r="1.5"></circle>
-                  <circle cx="7" cy="18" r="1.5"></circle>
-                </svg>
-                列を管理
-              </button>
+              <div class="database-schema-actions">
+                <button id="manage-columns-button" type="button" class="secondary-button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6h16M4 12h16M4 18h16"></path>
+                    <circle cx="9" cy="6" r="1.5"></circle>
+                    <circle cx="15" cy="12" r="1.5"></circle>
+                    <circle cx="7" cy="18" r="1.5"></circle>
+                  </svg>
+                  列を管理
+                </button>
+                <button id="add-entity-button" type="button" class="primary-button">
+                  <span class="button-plus" aria-hidden="true">＋</span>
+                  項目を追加
+                </button>
+              </div>
             </div>
             <div class="table-wrap">
               <table class="lore-table">
@@ -226,9 +232,6 @@
               </table>
               <div id="empty-state" class="empty-state is-hidden"></div>
             </div>
-            <button id="add-row-button" class="add-row-button">
-              <span>＋</span> 新しい項目を追加 <kbd>N</kbd>
-            </button>
           </div>
 
           <div id="board-view" class="board-view is-hidden">
@@ -607,7 +610,7 @@
               <div><dt><kbd>/</kbd></dt><dd>すばやく検索</dd></div>
               <div><dt><kbd>:</kbd></dt><dd>コマンドパレット</dd></div>
               <div><dt><kbd>d</kbd> / <kbd>b</kbd></dt><dd>DB / ボード表示</dd></div>
-              <div><dt><kbd>Backspace</kbd></dt><dd>ボードの選択項目を削除</dd></div>
+              <div><dt><kbd>Backspace</kbd></dt><dd>選択中の項目を削除</dd></div>
               <div><dt><kbd>Esc</kbd><kbd>Esc</kbd></dt><dd>検索を解除</dd></div>
             </dl>
           </div>

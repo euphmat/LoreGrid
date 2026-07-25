@@ -178,7 +178,7 @@
     display: none;
   }
 
-  .database-schema-bar > div {
+  .database-schema-summary {
     display: grid;
     gap: 1px;
   }

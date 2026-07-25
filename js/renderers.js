@@ -98,7 +98,6 @@ function renderDatabase() {
             </th>`,
         )
         .join("")}
-      <th class="add-column-header"><button data-add-db-column>＋ 列を追加</button></th>
       <th class="col-menu"><span class="sr-only">操作</span></th>
     </tr>`;
   dom.tableBody.innerHTML = items
@@ -123,7 +122,6 @@ function renderDatabase() {
                 `<td class="db-edit-cell">${dbFieldEditorMarkup(column, item)}</td>`,
             )
             .join("")}
-          <td class="add-column-cell"></td>
           <td><button class="row-menu" data-edit-entity="${escapeHTML(item.id)}" aria-label="${escapeHTML(item.title)}を編集">•••</button></td>
         </tr>`;
     })

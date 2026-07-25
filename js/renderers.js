@@ -322,19 +322,8 @@ function getAllRenderableLinks(items) {
   return links;
 }
 
-function automaticAnchor(source, target) {
-  const dx = target.x - source.x;
-  const dy = target.y - source.y;
-  const angle = Math.atan2(dy, dx);
-  const index = Math.round((angle / (Math.PI / 4) + 8)) % 8;
-  return ["e", "se", "s", "sw", "w", "nw", "n", "ne"][index];
-}
-
-function oppositeAnchor(anchor) {
-  return { n: "s", ne: "sw", e: "w", se: "nw", s: "n", sw: "ne", w: "e", nw: "se" }[
-    anchor
-  ] || "w";
-}
+const RELATION_ANCHORS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+const DIAGONAL_RELATION_ANCHORS = new Set(["nw", "ne", "se", "sw"]);
 
 function anchorPoint(item, anchor) {
   const card = $(`[data-board-id="${CSS.escape(item.id)}"]`, dom.boardCards);
@@ -368,6 +357,62 @@ function anchorVector(anchor) {
   }[anchor] || [1, 0];
 }
 
+function closestRelationAnchorPair(
+  source,
+  target,
+  preferredSourceAnchor = "e",
+  preferredTargetAnchor = "w",
+) {
+  const initialSourceAnchor = RELATION_ANCHORS.includes(preferredSourceAnchor)
+    ? preferredSourceAnchor
+    : "e";
+  const initialTargetAnchor = RELATION_ANCHORS.includes(preferredTargetAnchor)
+    ? preferredTargetAnchor
+    : "w";
+  const initialSourcePoint = anchorPoint(source, initialSourceAnchor);
+  const initialTargetPoint = anchorPoint(target, initialTargetAnchor);
+  const initialDx = initialTargetPoint.x - initialSourcePoint.x;
+  const initialDy = initialTargetPoint.y - initialSourcePoint.y;
+  let closest = {
+    sourceAnchor: initialSourceAnchor,
+    targetAnchor: initialTargetAnchor,
+    distanceSquared: initialDx * initialDx + initialDy * initialDy,
+    diagonalCount:
+      Number(DIAGONAL_RELATION_ANCHORS.has(initialSourceAnchor)) +
+      Number(DIAGONAL_RELATION_ANCHORS.has(initialTargetAnchor)),
+    preservesPreferredPair: true,
+  };
+  RELATION_ANCHORS.forEach((sourceAnchor) => {
+    const sourcePoint = anchorPoint(source, sourceAnchor);
+    RELATION_ANCHORS.forEach((targetAnchor) => {
+      const targetPoint = anchorPoint(target, targetAnchor);
+      const dx = targetPoint.x - sourcePoint.x;
+      const dy = targetPoint.y - sourcePoint.y;
+      const distanceSquared = dx * dx + dy * dy;
+      const diagonalCount =
+        Number(DIAGONAL_RELATION_ANCHORS.has(sourceAnchor)) +
+        Number(DIAGONAL_RELATION_ANCHORS.has(targetAnchor));
+      if (
+        distanceSquared < closest.distanceSquared ||
+        (
+          distanceSquared === closest.distanceSquared &&
+          !closest.preservesPreferredPair &&
+          diagonalCount < closest.diagonalCount
+        )
+      ) {
+        closest = {
+          sourceAnchor,
+          targetAnchor,
+          distanceSquared,
+          diagonalCount,
+          preservesPreferredPair: false,
+        };
+      }
+    });
+  });
+  return closest;
+}
+
 function renderRelationLines(items) {
   const links = getAllRenderableLinks(items);
   dom.relationLines.setAttribute("viewBox", `0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`);
@@ -379,8 +424,14 @@ function renderRelationLines(items) {
     </defs>
     ${links
     .map(({ source, target, link }) => {
-      const sourceAnchor = link.sourceAnchor || automaticAnchor(source, target);
-      const targetAnchor = link.targetAnchor || oppositeAnchor(sourceAnchor);
+      const { sourceAnchor, targetAnchor } = closestRelationAnchorPair(
+        source,
+        target,
+        link.sourceAnchor,
+        link.targetAnchor,
+      );
+      link.sourceAnchor = sourceAnchor;
+      link.targetAnchor = targetAnchor;
       const start = anchorPoint(source, sourceAnchor);
       const end = anchorPoint(target, targetAnchor);
       const startVector = anchorVector(sourceAnchor);

@@ -131,11 +131,11 @@ function renderDatabase() {
 
   dom.emptyState.classList.toggle("is-hidden", items.length > 0);
   if (!items.length) {
-    const hasFilter = state.settings.query;
+    const hasFilter = Boolean(state.settings.query) || hasActiveListFilters();
     dom.emptyState.innerHTML = `
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
       <strong>${hasFilter ? "一致する項目がありません" : "最初のロアを記録しましょう"}</strong>
-      <p>${hasFilter ? "検索語を変えてみてください。" : "DB列を自分で定義して、項目を整理できます。"}</p>
+      <p>${hasFilter ? "検索語やリストの選択を変えてみてください。" : "DB列を自分で定義して、項目を整理できます。"}</p>
       <button class="secondary-button" id="${hasFilter ? "empty-clear-filter" : "empty-add-entity"}">
         ${hasFilter ? "絞り込みを解除" : "項目を追加"}
       </button>`;
@@ -144,17 +144,37 @@ function renderDatabase() {
 }
 
 function columnKindOptions(selected) {
+  const activeKind = selected === "list" ? "list" : "text";
   return [
-    ["text", "テキスト"],
-    ["textarea", "複数行"],
-    ["number", "数値"],
-    ["date", "日付"],
-    ["checkbox", "チェック"],
-    ["list", "リスト項目"],
+    {
+      value: "text",
+      label: "テキスト",
+      description: "名称、URL、短いメモなどを自由入力",
+      icon: "T",
+    },
+    {
+      value: "list",
+      label: "リスト",
+      description: "色付き候補から選択・フィルター対応",
+      icon: "≡",
+    },
   ]
     .map(
-      ([value, label]) =>
-        `<option value="${value}" ${selected === value ? "selected" : ""}>${label}</option>`,
+      ({ value, label, description, icon }) => `
+        <label class="column-kind-option">
+          <input
+            type="radio"
+            name="column-kind"
+            value="${value}"
+            ${activeKind === value ? "checked" : ""}
+          />
+          <span class="column-kind-icon" aria-hidden="true">${icon}</span>
+          <span class="column-kind-copy">
+            <strong>${label}</strong>
+            <small>${description}</small>
+          </span>
+          <span class="column-kind-check" aria-hidden="true">✓</span>
+        </label>`,
     )
     .join("");
 }
@@ -458,6 +478,7 @@ function renderBoard() {
           ${imageMarkup(item, "board-card-image")}
           <div class="board-card-body">
             <h3>${escapeHTML(item.title)}</h3>
+            ${boardListBadgesMarkup(item)}
           </div>
           ${connectorHandlesMarkup(item)}
         </article>`;
@@ -468,6 +489,23 @@ function renderBoard() {
   dom.boardCanvas.style.zoom = zoom;
   $("#zoom-label").textContent = `${Math.round(zoom * 100)}%`;
   addImageFallbacks(dom.boardView);
+}
+
+function boardListBadgesMarkup(item) {
+  const badges = activeProject().columns
+    .filter((column) => column.kind === "list")
+    .map((column) => listOptionForValue(column, item.fields?.[column.id]))
+    .filter(Boolean)
+    .slice(0, 3);
+  if (!badges.length) return "";
+  return `<div class="board-card-tags">
+    ${badges
+      .map(
+        (option) =>
+          `<span style="--list-color:${escapeHTML(option.color)}">${escapeHTML(option.label)}</span>`,
+      )
+      .join("")}
+  </div>`;
 }
 
 function organisationPaletteMarkup(item) {
@@ -613,6 +651,85 @@ function renderViewState() {
 
 function renderFilters() {
   dom.search.value = state.settings.query || "";
+  const listColumns = activeProject().columns.filter(
+    (column) => column.kind === "list" && column.options?.length,
+  );
+  if (!listColumns.length) {
+    dom.listFilterBar.innerHTML = "";
+    dom.listFilterBar.classList.add("is-hidden");
+    return;
+  }
+  dom.listFilterBar.classList.remove("is-hidden");
+  dom.listFilterBar.innerHTML = `
+    <span class="list-filter-label">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7v5l-4 2v-7L4 6Z"></path></svg>
+      リスト
+    </span>
+    <div class="list-filter-controls">
+      ${listColumns.map((column) => listFilterControlMarkup(column)).join("")}
+    </div>
+    <button
+      id="clear-list-filters"
+      class="clear-list-filters ${hasActiveListFilters() ? "" : "is-hidden"}"
+      type="button"
+    >すべて解除</button>`;
+}
+
+function activeListFilterValues(column) {
+  const selected = state.settings.listFilters?.[column.id];
+  if (!Array.isArray(selected)) return [];
+  const validIds = new Set((column.options || []).map((option) => option.id));
+  return selected.filter((optionId) => validIds.has(optionId));
+}
+
+function hasActiveListFilters() {
+  return activeProject().columns
+    .filter((column) => column.kind === "list")
+    .some((column) => activeListFilterValues(column).length);
+}
+
+function listFilterControlMarkup(column) {
+  const selected = activeListFilterValues(column);
+  const selectedOptions = column.options.filter((option) => selected.includes(option.id));
+  const summary =
+    selectedOptions.length === 1
+      ? selectedOptions[0].label
+      : selectedOptions.length > 1
+        ? `${selectedOptions.length}件を選択`
+        : "すべて";
+  return `
+    <details class="list-filter-control ${selected.length ? "is-active" : ""}">
+      <summary>
+        <span>${escapeHTML(column.label)}</span>
+        <strong>${escapeHTML(summary)}</strong>
+        <i aria-hidden="true"></i>
+      </summary>
+      <div class="list-filter-menu">
+        <div class="list-filter-menu-heading">
+          <strong>${escapeHTML(column.label)}</strong>
+          <small>複数選択できます</small>
+        </div>
+        ${column.options
+          .map((option) => {
+            const count = activeProject().entities.filter(
+              (item) => String(item.fields?.[column.id] ?? "") === option.id,
+            ).length;
+            return `
+              <label class="list-filter-option" style="--list-color:${escapeHTML(option.color)}">
+                <input
+                  type="checkbox"
+                  data-list-filter-column="${escapeHTML(column.id)}"
+                  data-list-filter-option="${escapeHTML(option.id)}"
+                  ${selected.includes(option.id) ? "checked" : ""}
+                />
+                <span class="list-filter-dot" aria-hidden="true"></span>
+                <span>${escapeHTML(option.label)}</span>
+                <small>${count}</small>
+              </label>`;
+          })
+          .join("")}
+      </div>
+    </details>`;
 }
 
 function renderAll() {

@@ -179,11 +179,189 @@
   display: flex;
   min-height: 48px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 18px;
   padding: 7px 28px;
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 87%, transparent);
+}
+
+.list-filter-bar {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+}
+
+.list-filter-label {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-faint);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.list-filter-label svg {
+  width: 12px;
+  height: 12px;
+}
+
+.list-filter-controls {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.list-filter-control {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.list-filter-control > summary {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.list-filter-control > summary::-webkit-details-marker {
+  display: none;
+}
+
+.list-filter-control > summary span {
+  color: var(--ink-faint);
+}
+
+.list-filter-control > summary strong {
+  max-width: 112px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-filter-control > summary i {
+  width: 5px;
+  height: 5px;
+  margin-left: 1px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+}
+
+.list-filter-control.is-active > summary {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+}
+
+.list-filter-control[open] > summary {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.list-filter-menu {
+  position: absolute;
+  z-index: 35;
+  top: 36px;
+  left: 0;
+  display: grid;
+  width: 230px;
+  max-height: min(330px, 55vh);
+  overflow-y: auto;
+  padding: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.list-filter-menu-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.list-filter-menu-heading strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-filter-menu-heading small {
+  flex: 0 0 auto;
+  color: var(--ink-faint);
+  font-size: 7px;
+}
+
+.list-filter-option {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: 14px 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  color: var(--ink-muted);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.list-filter-option:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.list-filter-option input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.list-filter-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--list-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--list-color) 17%, transparent);
+}
+
+.list-filter-option small {
+  color: var(--ink-faint);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 7px;
+}
+
+.clear-list-filters {
+  flex: 0 0 auto;
+  padding: 4px 5px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 8px;
+}
+
+.clear-list-filters:hover {
+  text-decoration: underline;
 }
 
 .filter-tabs {
@@ -275,4 +453,3 @@
   width: 13px;
   height: 13px;
 }
-

@@ -52,6 +52,7 @@ function switchProject(id) {
   state.activeProjectId = id;
   state.activeEntityId = null;
   state.settings.query = "";
+  state.settings.listFilters = {};
   closeMobileSidebar();
   renderAll();
   markChanged("プロジェクトを切り替えました");
@@ -71,8 +72,42 @@ function setView(view) {
 
 function clearFilters() {
   state.settings.query = "";
+  state.settings.listFilters = {};
   renderAll();
   markChanged("絞り込みを解除しました");
+}
+
+function updateListFilter(columnId, optionId, checked) {
+  const column = activeProject().columns.find(
+    (candidate) => candidate.id === columnId && candidate.kind === "list",
+  );
+  if (!column?.options.some((option) => option.id === optionId)) return;
+  const filters =
+    state.settings.listFilters && typeof state.settings.listFilters === "object"
+      ? state.settings.listFilters
+      : {};
+  const selected = new Set(Array.isArray(filters[columnId]) ? filters[columnId] : []);
+  if (checked) selected.add(optionId);
+  else selected.delete(optionId);
+  if (selected.size) filters[columnId] = [...selected];
+  else delete filters[columnId];
+  state.settings.listFilters = filters;
+  renderFilters();
+  $(
+    `[data-list-filter-column="${CSS.escape(columnId)}"]`,
+    dom.listFilterBar,
+  )?.closest("details")?.setAttribute("open", "");
+  renderDatabase();
+  renderBoard();
+  markChanged("リストで絞り込みました");
+}
+
+function clearListFilters() {
+  state.settings.listFilters = {};
+  renderFilters();
+  renderDatabase();
+  renderBoard();
+  markChanged("リストの絞り込みを解除しました");
 }
 
 function updateProjectTimestamp() {
@@ -115,25 +150,34 @@ function listOptionEditorRowMarkup(option = {}) {
     </div>`;
 }
 
-function addListOptionEditorRow(option = {}) {
+function addListOptionEditorRow(option = {}, { focus = true } = {}) {
   $("#column-list-options").insertAdjacentHTML("beforeend", listOptionEditorRowMarkup(option));
   const row = $("#column-list-options").lastElementChild;
   databaseColumnEditorDirty = true;
-  $(".list-option-name", row)?.focus();
+  syncListOptionEditorEmptyState();
+  if (focus) $(".list-option-name", row)?.focus();
+}
+
+function syncListOptionEditorEmptyState() {
+  $("#column-list-empty").classList.toggle(
+    "is-hidden",
+    Boolean($("[data-list-option-row]", $("#column-list-options"))),
+  );
+}
+
+function columnEditorKind() {
+  return $('input[name="column-kind"]:checked', $("#column-kind"))?.value || "text";
 }
 
 function updateColumnListSettingsVisibility() {
-  const kind = $("#column-kind").value;
+  const kind = columnEditorKind();
   $("#column-list-settings").classList.toggle("is-hidden", kind !== "list");
   $("#column-kind-help").textContent =
     {
-      text: "名前や短いメモなど、1行の文字を入力します。",
-      textarea: "説明や補足など、複数行の文章を入力します。",
-      number: "数値だけを入力します。",
-      date: "カレンダーから日付を選びます。",
-      checkbox: "完了・未完了のような二択を管理します。",
-      list: "色付きの候補から1つを選びます。",
+      text: "各項目に1行の文字を直接入力します。",
+      list: "候補を作成すると、DB と Board の両方で絞り込めます。",
     }[kind] || "";
+  syncListOptionEditorEmptyState();
 }
 
 function renderColumnManagerList(activeId = "") {
@@ -217,7 +261,8 @@ function saveDatabaseColumnEditor({ close = false, quiet = false } = {}) {
     $("#column-name").reportValidity();
     return false;
   }
-  const kind = $("#column-kind").value;
+  const requestedKind = columnEditorKind();
+  const kind = requestedKind === "list" ? "list" : "text";
   const options = normalizeListOptions(
     $$(".column-list-option-row", $("#column-list-options")).map((row) => ({
       id: row.dataset.optionId,
@@ -260,6 +305,15 @@ function saveDatabaseColumnEditor({ close = false, quiet = false } = {}) {
       item.fields[column.id] = previousOption?.label || "";
     }
   });
+  const validOptionIds = new Set(options.map((option) => option.id));
+  const selectedFilters = state.settings.listFilters?.[column.id];
+  if (kind !== "list" || !Array.isArray(selectedFilters)) {
+    if (state.settings.listFilters) delete state.settings.listFilters[column.id];
+  } else {
+    const validFilters = selectedFilters.filter((optionId) => validOptionIds.has(optionId));
+    if (validFilters.length) state.settings.listFilters[column.id] = validFilters;
+    else delete state.settings.listFilters[column.id];
+  }
   updateProjectTimestamp();
   databaseColumnEditorDirty = false;
   if (close) closeDatabaseColumnModal();
@@ -314,6 +368,7 @@ function deleteDatabaseColumn(id, { keepEditorOpen = false } = {}) {
   if (!column) return false;
   if (!window.confirm(`列「${column.label || "名称未設定"}」を削除しますか？\nこの列に入力した値も削除されます。`)) return false;
   project.columns = project.columns.filter((candidate) => candidate.id !== id);
+  if (state.settings.listFilters) delete state.settings.listFilters[id];
   project.entities.forEach((item) => {
     delete item.fields[id];
   });

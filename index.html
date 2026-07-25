@@ -183,6 +183,7 @@
         </section>
 
         <section class="toolbar">
+          <div id="list-filter-bar" class="list-filter-bar is-hidden" aria-label="リストで絞り込む"></div>
           <div class="toolbar-actions">
             <label class="inline-search">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -504,11 +505,11 @@
                 <span>列名</span>
                 <input id="column-name" required maxlength="40" placeholder="例：分類、登場年代、所属" />
               </label>
-              <label class="field">
-                <span>入力形式</span>
-                <select id="column-kind"></select>
+              <fieldset class="column-kind-field">
+                <legend>入力形式</legend>
+                <div id="column-kind" class="column-kind-picker"></div>
                 <small id="column-kind-help" class="column-kind-help"></small>
-              </label>
+              </fieldset>
               <section id="column-list-settings" class="column-list-settings is-hidden">
                 <div class="column-list-heading">
                   <div>
@@ -518,6 +519,9 @@
                   <button id="add-list-option" type="button" class="secondary-button">＋ 候補を追加</button>
                 </div>
                 <div id="column-list-options" class="column-list-option-editor"></div>
+                <p id="column-list-empty" class="column-list-empty">
+                  候補はまだありません。「候補を追加」から選択肢を作成してください。
+                </p>
               </section>
             </div>
           </div>

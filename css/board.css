@@ -592,9 +592,10 @@
 
 .board-card-tags span {
   padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--list-color) 35%, var(--line));
   border-radius: 3px;
-  background: var(--surface-2);
-  color: var(--ink-faint);
+  background: color-mix(in srgb, var(--list-color) 15%, var(--surface-2));
+  color: color-mix(in srgb, var(--list-color) 68%, var(--ink));
   font-size: 7px;
 }
 

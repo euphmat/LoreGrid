@@ -120,6 +120,7 @@ function seedState() {
       theme: "dark",
       view: "database",
       query: "",
+      listFilters: {},
       sort: "updatedAt-desc",
       boardZoom: 1,
       sidebarCollapsed: false,
@@ -228,6 +229,19 @@ function normalizeState(candidate) {
   if (settings.sort === "type-asc" || settings.sort === "type-desc") {
     settings.sort = defaults.sort;
   }
+  settings.listFilters =
+    settings.listFilters && typeof settings.listFilters === "object"
+      ? Object.fromEntries(
+          Object.entries(settings.listFilters)
+            .map(([columnId, optionIds]) => [
+              columnId,
+              Array.isArray(optionIds)
+                ? [...new Set(optionIds.map(String).filter(Boolean))]
+                : [],
+            ])
+            .filter(([, optionIds]) => optionIds.length),
+        )
+      : {};
   return {
     schemaVersion: SCHEMA_VERSION,
     activeProjectId,
@@ -286,6 +300,7 @@ const dom = {
   inspector: $("#inspector"),
   inspectorContent: $("#inspector-content"),
   search: $("#inline-search"),
+  listFilterBar: $("#list-filter-bar"),
   entityModal: $("#entity-modal"),
   projectModal: $("#project-modal"),
   columnModal: $("#column-modal"),
@@ -530,7 +545,28 @@ function toast(message, icon = "✓") {
 function visibleEntities() {
   const { query, sort } = state.settings;
   const normalizedQuery = String(query || "").trim().toLocaleLowerCase("ja");
+  const savedListFilters =
+    state.settings.listFilters && typeof state.settings.listFilters === "object"
+      ? state.settings.listFilters
+      : {};
+  const listFilters = activeProject().columns
+    .filter((column) => column.kind === "list")
+    .map((column) => {
+      const validIds = new Set((column.options || []).map((option) => option.id));
+      const optionIds = Array.isArray(savedListFilters[column.id])
+        ? savedListFilters[column.id].filter((optionId) => validIds.has(optionId))
+        : [];
+      return [column.id, optionIds];
+    })
+    .filter(([, optionIds]) => optionIds.length);
   const items = activeProject().entities.filter((item) => {
+    const matchesListFilters = listFilters.every(
+      ([columnId, optionIds]) =>
+        !Array.isArray(optionIds) ||
+        !optionIds.length ||
+        optionIds.includes(String(item.fields?.[columnId] ?? "")),
+    );
+    if (!matchesListFilters) return false;
     if (!normalizedQuery) return true;
     const haystack = [
       item.title,

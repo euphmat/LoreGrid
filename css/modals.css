@@ -678,6 +678,118 @@
   text-align: right;
 }
 
+.column-kind-field {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 7px;
+}
+
+.column-kind-field legend {
+  margin-bottom: 7px;
+  color: var(--ink-muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.column-kind-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.column-kind-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 72px;
+  grid-template-columns: 34px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms, box-shadow 120ms;
+}
+
+.column-kind-option:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.column-kind-option:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.column-kind-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.column-kind-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.column-kind-icon {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--accent);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.column-kind-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.column-kind-copy strong {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.column-kind-copy small {
+  color: var(--ink-faint);
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+.column-kind-check {
+  display: flex;
+  width: 17px;
+  height: 17px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: transparent;
+  font-size: 9px;
+}
+
+.column-kind-option:has(input:checked) .column-kind-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
 .column-kind-help {
   display: block;
   min-height: 16px;
@@ -724,6 +836,17 @@
 .column-list-option-editor {
   display: grid;
   gap: 6px;
+}
+
+.column-list-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  color: var(--ink-faint);
+  font-size: 8px;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .column-list-option-row {

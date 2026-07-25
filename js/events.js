@@ -220,6 +220,30 @@ dom.search.addEventListener("input", () => {
   markChanged("検索中");
 });
 
+dom.listFilterBar.addEventListener("change", (event) => {
+  const checkbox = event.target.closest(
+    "[data-list-filter-column][data-list-filter-option]",
+  );
+  if (!checkbox) return;
+  updateListFilter(
+    checkbox.dataset.listFilterColumn,
+    checkbox.dataset.listFilterOption,
+    checkbox.checked,
+  );
+});
+dom.listFilterBar.addEventListener("click", (event) => {
+  if (event.target.closest("#clear-list-filters")) {
+    clearListFilters();
+    return;
+  }
+  const summary = event.target.closest(".list-filter-control > summary");
+  if (!summary) return;
+  const current = summary.closest("details");
+  $$(".list-filter-control[open]", dom.listFilterBar).forEach((details) => {
+    if (details !== current) details.removeAttribute("open");
+  });
+});
+
 dom.tableHead.addEventListener("click", (event) => {
     const addColumn = event.target.closest("[data-add-db-column]");
     const editColumn = event.target.closest("[data-edit-db-column]");
@@ -323,6 +347,7 @@ $("#column-list-options").addEventListener("click", (event) => {
   if (remove) {
     remove.closest("[data-list-option-row]")?.remove();
     databaseColumnEditorDirty = true;
+    syncListOptionEditorEmptyState();
   } else if (color) {
     const row = color.closest("[data-list-option-row]");
     const selected = normalizePaletteColor(color.dataset.listOptionColor);
@@ -418,6 +443,11 @@ document.addEventListener("click", (event) => {
   const add = event.target.closest("#empty-add-entity");
   if (clear) clearFilters();
   if (add) createEntityInInspector();
+  if (!event.target.closest(".list-filter-control")) {
+    $$(".list-filter-control[open]", dom.listFilterBar).forEach((details) =>
+      details.removeAttribute("open"),
+    );
+  }
   if (
     !dom.relationEditor.classList.contains("is-hidden") &&
     !event.target.closest("#relation-editor") &&

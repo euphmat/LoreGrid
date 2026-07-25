@@ -146,6 +146,11 @@
     padding: 7px 18px;
   }
 
+  .list-filter-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
   .database-view {
     padding: 12px 18px 40px;
   }
@@ -210,6 +215,10 @@
     display: none;
   }
 
+  .column-kind-picker {
+    grid-template-columns: 1fr;
+  }
+
   .topbar {
     padding: 0 6px;
   }
@@ -235,6 +244,24 @@
     align-items: stretch;
     flex-direction: column;
     gap: 6px;
+  }
+
+  .list-filter-bar {
+    width: 100%;
+  }
+
+  .list-filter-controls {
+    flex: 1;
+  }
+
+  .list-filter-menu {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 42px;
+    left: 12px;
+    width: auto;
+    max-height: 46vh;
   }
 
   .filter-tabs {

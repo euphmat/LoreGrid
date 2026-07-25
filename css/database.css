@@ -1,0 +1,449 @@
+.content-area {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.database-view,
+.board-view {
+  width: 100%;
+  height: 100%;
+}
+
+.database-view {
+  overflow: auto;
+  padding: 16px 28px 45px;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+}
+
+.lore-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.lore-table th,
+.lore-table td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.lore-table th {
+  height: 34px;
+  padding: 0 10px;
+  background: var(--surface-2);
+  color: var(--ink-faint);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.lore-table th[data-sort] {
+  cursor: pointer;
+}
+
+.lore-table th:nth-child(2) {
+  min-width: 260px;
+}
+
+.lore-table th:not(.col-marker, .col-menu),
+.lore-table td:not(:first-child, :last-child) {
+  min-width: 110px;
+}
+
+.lore-table .col-marker {
+  width: 5px;
+  padding: 0;
+}
+
+.lore-table .col-menu {
+  width: 38px;
+}
+
+.custom-column-header {
+  min-width: 230px !important;
+  padding: 4px 6px !important;
+  cursor: grab;
+  transition: opacity 120ms, box-shadow 120ms;
+}
+
+.custom-column-header.is-dragging {
+  opacity: 0.42;
+}
+
+.custom-column-header.is-drop-target {
+  box-shadow: inset 3px 0 var(--accent);
+}
+
+.custom-column-display {
+  display: grid;
+  grid-template-columns: 17px minmax(70px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.column-drag-handle {
+  color: var(--ink-faint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: grab;
+}
+
+.column-heading-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.column-heading-copy strong,
+.column-heading-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.column-heading-copy strong {
+  color: var(--ink);
+  font-size: 8px;
+}
+
+.column-heading-copy small {
+  color: var(--ink-faint);
+  font-size: 7px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.column-header-actions {
+  display: flex;
+  gap: 3px;
+}
+
+.column-header-actions button {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink-faint);
+  font-size: 7px;
+}
+
+.column-header-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.column-header-actions button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.add-column-header {
+  width: 96px;
+  min-width: 96px !important;
+  padding: 4px 6px !important;
+}
+
+.add-column-header button {
+  width: 100%;
+  height: 26px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 8px;
+}
+
+.add-column-header button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.add-column-cell {
+  width: 96px;
+  min-width: 96px !important;
+}
+
+.db-edit-cell {
+  padding: 6px !important;
+}
+
+.db-cell-input {
+  width: 100%;
+  min-width: 90px;
+  height: 32px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  outline: none;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 9px;
+}
+
+.db-cell-input:hover,
+.db-cell-input:focus {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.db-cell-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.db-cell-input.db-cell-select,
+.inspector-list-badge {
+  border-color: color-mix(in srgb, var(--list-color) 42%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--list-color) 18%, var(--surface)) !important;
+  color: color-mix(in srgb, var(--list-color) 68%, var(--ink)) !important;
+  font-weight: 700;
+}
+
+.db-cell-input.db-cell-select:hover,
+.db-cell-input.db-cell-select:focus,
+.inspector-list-badge:hover,
+.inspector-list-badge:focus {
+  border-color: var(--list-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--list-color) 18%, transparent);
+}
+
+.db-checkbox {
+  display: flex;
+  width: 100%;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.db-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.sort-indicator {
+  margin-left: 3px;
+  opacity: 0.35;
+}
+
+.lore-table tbody tr {
+  position: relative;
+  height: 57px;
+  cursor: pointer;
+  transition: background 100ms;
+}
+
+.lore-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.lore-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.lore-table tbody tr.is-selected {
+  background: var(--accent-soft);
+}
+
+.lore-table tbody tr.is-selected .row-marker {
+  background: var(--accent);
+}
+
+.lore-table td {
+  height: 57px;
+  padding: 0 10px;
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.lore-table td:first-child {
+  padding: 0;
+}
+
+.row-marker {
+  display: block;
+  width: 3px;
+  height: 57px;
+  background: transparent;
+}
+
+.entity-name-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.entity-thumb {
+  position: relative;
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-3);
+  color: var(--entity-color);
+  font-family: "BIZ UDPMincho", "Yu Mincho", serif;
+  font-size: 13px;
+}
+
+.entity-thumb img {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.entity-name-copy {
+  min-width: 0;
+}
+
+.entity-name-copy strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entity-name-copy strong {
+  color: var(--ink);
+  font-family: "BIZ UDPMincho", "Yu Mincho", serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border-radius: 99px;
+  background: var(--status-bg);
+  color: var(--status-color);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.status-badge::before {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.tag-list {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.tag {
+  max-width: 105px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-menu {
+  width: 25px;
+  height: 25px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-faint);
+}
+
+.row-menu:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.add-row-button {
+  width: 100%;
+  height: 36px;
+  margin-top: 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 9px;
+  text-align: left;
+}
+
+.add-row-button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.add-row-button span {
+  margin: 0 8px 0 12px;
+  font-size: 14px;
+}
+
+.add-row-button kbd {
+  float: right;
+  margin: 7px 10px 0 0;
+}
+
+.empty-state {
+  display: flex;
+  min-height: 270px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 35px;
+  text-align: center;
+}
+
+.empty-state svg {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 12px;
+  color: var(--ink-faint);
+}
+
+.empty-state strong {
+  font-family: "BIZ UDPMincho", "Yu Mincho", serif;
+  font-size: 15px;
+}
+
+.empty-state p {
+  max-width: 340px;
+  margin: 7px 0 14px;
+  color: var(--ink-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+

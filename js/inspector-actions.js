@@ -1,0 +1,141 @@
+"use strict";
+
+// Inline inspector editing and inspector image operations.
+
+function updateInspectorValue(target) {
+  const item = activeEntity();
+  if (!item) return;
+  if (target.dataset.inspectorField) {
+    const key = target.dataset.inspectorField;
+    item[key] = target.type === "checkbox" ? target.checked : target.value;
+  } else if (target.dataset.inspectorCustom) {
+    item.fields[target.dataset.inspectorCustom] =
+      target.type === "checkbox" ? target.checked : target.value;
+    const column = activeProject().columns.find(
+      (candidate) => candidate.id === target.dataset.inspectorCustom,
+    );
+    if (column?.kind === "list") {
+      const option = listOptionForValue(column, target.value);
+      target.style.setProperty("--list-color", option?.color || "#777B85");
+    }
+  } else {
+    return;
+  }
+  if (!String(item.title).trim()) item.title = "名称未設定";
+  item.updatedAt = now();
+  updateProjectTimestamp();
+  if (target.dataset.inspectorField === "title") {
+    $(".inspector-cover-letter", dom.inspectorContent).textContent = item.title.slice(0, 1);
+  }
+  renderHeader();
+  renderDatabase();
+  renderBoard();
+  markChanged("詳細の変更を保存しました");
+}
+
+function updateInspectorOrganisation(enabled) {
+  const item = activeEntity();
+  if (!item) return;
+  item.organisation = enabled;
+  if (enabled) {
+    item.x = Math.max(0, Math.min(BOARD_WIDTH - item.groupWidth, item.x));
+    item.y = Math.max(0, Math.min(BOARD_HEIGHT - item.groupHeight, item.y));
+  }
+  if (!enabled) {
+    activeProject().entities.forEach((candidate) => {
+      if (candidate.parentGroupId === item.id) candidate.parentGroupId = "";
+    });
+  }
+  activeProject().entities
+    .filter((candidate) => candidate.id !== item.id)
+    .forEach((candidate) => updateEntityGroupMembership(candidate));
+  item.updatedAt = now();
+  updateProjectTimestamp();
+  renderDatabase();
+  renderBoard();
+  renderInspector();
+  markChanged(enabled ? "Organisationを有効にしました" : "Organisationを無効にしました");
+}
+
+function setOrganisationColor(color) {
+  const item = activeEntity();
+  if (!item || !item.organisation) return;
+  item.groupColor = normalizePaletteColor(color);
+  item.updatedAt = now();
+  updateProjectTimestamp();
+  renderBoard();
+  renderInspector();
+  markChanged("グループ背景色を保存しました");
+}
+
+async function handleInspectorImageFile(file) {
+  const item = activeEntity();
+  if (!item || !file || !file.type.startsWith("image/")) {
+    toast("画像ファイルを選択してください。", "!");
+    return;
+  }
+  try {
+    const imageId = item.imageId || uid("img");
+    await putStoredImage(imageId, file);
+    item.imageId = imageId;
+    item.imageName = file.name;
+    item.image = "";
+    item.updatedAt = now();
+    setSessionImageURL(item.id, file);
+    updateProjectTimestamp();
+    renderAll();
+    markChanged("画像をブラウザへ保存しました");
+    toast("画像をブラウザへ保存しました。");
+  } catch (error) {
+    toast(`画像を保存できませんでした: ${error.message}`, "!");
+  }
+}
+
+async function removeInspectorImage(id) {
+  const item = getEntityById(id);
+  if (!item) return;
+  try {
+    if (item.imageId) await deleteStoredImage(item.imageId);
+    const url = sessionImageURLs.get(item.id);
+    if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+    sessionImageURLs.delete(item.id);
+    missingImageIds.delete(item.id);
+    item.imageId = "";
+    item.imageName = "";
+    item.image = "";
+    item.updatedAt = now();
+    updateProjectTimestamp();
+    renderAll();
+    markChanged("画像を削除しました");
+    toast("画像を削除しました。", "−");
+  } catch (error) {
+    toast(`画像を削除できませんでした: ${error.message}`, "!");
+  }
+}
+
+function deleteEntityFromInspector(id) {
+  const item = getEntityById(id);
+  if (!item) return;
+  if (!window.confirm(`「${item.title}」を削除しますか？\nこの操作は JSON バックアップからのみ復元できます。`)) return;
+  const project = activeProject();
+  project.entities = project.entities.filter((candidate) => candidate.id !== id);
+  project.entities.forEach((candidate) => {
+    candidate.links = candidate.links.filter((link) => link.targetId !== id);
+    if (candidate.parentGroupId === id) candidate.parentGroupId = "";
+  });
+  const url = sessionImageURLs.get(id);
+  if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+  sessionImageURLs.delete(id);
+  missingImageIds.delete(id);
+  if (item.imageId) {
+    void deleteStoredImage(item.imageId).catch((error) =>
+      console.warn("LoreGrid: image could not be deleted.", error),
+    );
+  }
+  state.activeEntityId = null;
+  updateProjectTimestamp();
+  renderAll();
+  markChanged("項目を削除しました");
+  toast(`「${item.title}」を削除しました。`, "−");
+}
+

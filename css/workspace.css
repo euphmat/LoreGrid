@@ -1,0 +1,278 @@
+.main-panel {
+  position: relative;
+  grid-area: main;
+  display: grid;
+  min-width: 0;
+  grid-template-rows: auto auto minmax(0, 1fr) 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% -20%, var(--accent-soft), transparent 26%),
+    var(--bg);
+}
+
+.workspace-header {
+  position: relative;
+  display: flex;
+  min-height: 115px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  overflow: hidden;
+  padding: 19px 28px 16px;
+  border-bottom: 1px solid var(--line);
+  isolation: isolate;
+}
+
+.workspace-header::before {
+  position: absolute;
+  z-index: 10;
+  inset: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  color: var(--ink);
+  content: "画像をドロップしてプロジェクト背景に設定";
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+  backdrop-filter: blur(7px);
+}
+
+.workspace-header.is-banner-dragover::before {
+  opacity: 1;
+}
+
+.workspace-banner {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+}
+
+.workspace-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.94;
+}
+
+.workspace-banner::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--bg) 68%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 24%, transparent) 48%,
+      color-mix(in srgb, var(--bg) 12%, transparent) 100%
+    ),
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--bg) 32%, transparent),
+      transparent 68%
+    );
+  content: "";
+}
+
+.workspace-header-content,
+.workspace-meta {
+  position: relative;
+  z-index: 1;
+}
+
+.workspace-header-content {
+  min-width: 0;
+}
+
+.eyebrow {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+  color: var(--accent);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-row h1 {
+  margin: 0;
+  font-family: "BIZ UDPMincho", "Yu Mincho", serif;
+  font-size: clamp(24px, 2.2vw, 31px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.quiet-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.title-row:hover .quiet-icon {
+  opacity: 1;
+}
+
+.quiet-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.workspace-description {
+  max-width: 680px;
+  margin: 7px 0 0;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-meta {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.zoom-controls {
+  display: flex;
+  height: 29px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.zoom-controls button {
+  width: 28px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.zoom-controls span {
+  min-width: 42px;
+  color: var(--ink-muted);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  text-align: center;
+}
+
+.toolbar {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding: 7px 28px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 87%, transparent);
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.filter-tabs button {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 9px;
+}
+
+.filter-tabs button:hover {
+  color: var(--ink);
+}
+
+.filter-tabs button.is-active {
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-search {
+  display: flex;
+  width: 190px;
+  height: 30px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.inline-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.inline-search svg {
+  width: 13px;
+  height: 13px;
+  color: var(--ink-faint);
+}
+
+.inline-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 10px;
+}
+
+.inline-search input::placeholder {
+  color: var(--ink-faint);
+}
+
+.inline-search button {
+  display: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+}
+
+.inline-search:has(input:not(:placeholder-shown)) button {
+  display: block;
+}
+
+.toolbar .secondary-button {
+  height: 30px;
+  padding: 0 9px;
+  font-size: 9px;
+}
+
+.toolbar .secondary-button svg {
+  width: 13px;
+  height: 13px;
+}
+

@@ -41,7 +41,14 @@
           },
       };
     </script>
-    <link rel="stylesheet" href="styles.css" />
+    <!-- Keep this order: later feature styles build on the shared tokens and layout. -->
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/workspace.css" />
+    <link rel="stylesheet" href="css/database.css" />
+    <link rel="stylesheet" href="css/board.css" />
+    <link rel="stylesheet" href="css/inspector.css" />
+    <link rel="stylesheet" href="css/modals.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
   </head>
   <body class="bg-[#f4f1e9] text-[#171821] antialiased">
     <div id="app" class="app-shell">
@@ -601,6 +608,17 @@
     </div>
 
     <div id="toast-region" class="toast-region" aria-live="polite"></div>
-    <script src="app.js"></script>
+    <!--
+      These classic scripts intentionally share one global lexical scope.
+      Keep the dependency order documented in js/README.md.
+    -->
+    <script src="js/core.js"></script>
+    <script src="js/renderers.js"></script>
+    <script src="js/data-actions.js"></script>
+    <script src="js/ui-actions.js"></script>
+    <script src="js/board-interactions.js"></script>
+    <script src="js/inspector-actions.js"></script>
+    <script src="js/vim-editor.js"></script>
+    <script src="js/events.js"></script>
   </body>
 </html>

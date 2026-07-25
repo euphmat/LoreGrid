@@ -3,8 +3,12 @@
 // Board zooming, connections, dragging, grouping, resizing, and panning.
 
 function handleBoardWheelZoom(event) {
-  if (!event.metaKey || event.deltaY === 0) return;
   event.preventDefault();
+  const delta =
+    Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+      ? event.deltaY
+      : event.deltaX;
+  if (delta === 0) return;
   const before = Number(state.settings.boardZoom) || 1;
   const rect = dom.boardViewport.getBoundingClientRect();
   const pointerX = event.clientX - rect.left;
@@ -13,17 +17,20 @@ function handleBoardWheelZoom(event) {
     boardOriginX + (dom.boardViewport.scrollLeft + pointerX) / before;
   const logicalY =
     boardOriginY + (dom.boardViewport.scrollTop + pointerY) / before;
-  const magnitude = Math.min(0.12, Math.max(0.02, Math.abs(event.deltaY) * 0.002));
+  const magnitude = Math.min(0.1, Math.max(0.01, Math.abs(delta) * 0.0015));
   const next = Math.min(
     1.4,
-    Math.max(0.6, Math.round((before + (event.deltaY < 0 ? magnitude : -magnitude)) * 100) / 100),
+    Math.max(
+      0.6,
+      Math.round((before + (delta < 0 ? magnitude : -magnitude)) * 100) / 100,
+    ),
   );
   if (next === before) return;
   state.settings.boardZoom = next;
   renderBoard();
   dom.boardViewport.scrollLeft = (logicalX - boardOriginX) * next - pointerX;
   dom.boardViewport.scrollTop = (logicalY - boardOriginY) * next - pointerY;
-  markChanged("Command + ホイールでボードをズーム");
+  markChanged("ホイールでボードをズーム");
 }
 
 function boardPointFromClient(clientX, clientY) {

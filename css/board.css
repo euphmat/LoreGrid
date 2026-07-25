@@ -12,7 +12,7 @@
   cursor: grab;
   touch-action: none;
   scrollbar-color: color-mix(in srgb, var(--accent) 72%, var(--ink-muted)) var(--surface-2);
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .board-canvas {
@@ -20,6 +20,7 @@
 }
 
 .board-viewport::-webkit-scrollbar {
+  display: none;
   width: 11px;
   height: 11px;
 }

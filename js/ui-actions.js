@@ -449,22 +449,3 @@ function cycleSort() {
   renderBoard();
   markChanged("並び順を変更しました");
 }
-
-function setBoardZoom(delta) {
-  const before = Number(state.settings.boardZoom) || 1;
-  const pointerX = dom.boardViewport.clientWidth / 2;
-  const pointerY = dom.boardViewport.clientHeight / 2;
-  const logicalX =
-    boardOriginX + (dom.boardViewport.scrollLeft + pointerX) / before;
-  const logicalY =
-    boardOriginY + (dom.boardViewport.scrollTop + pointerY) / before;
-  state.settings.boardZoom = Math.min(
-    1.4,
-    Math.max(0.6, before + delta),
-  );
-  const next = state.settings.boardZoom;
-  renderBoard();
-  dom.boardViewport.scrollLeft = (logicalX - boardOriginX) * next - pointerX;
-  dom.boardViewport.scrollTop = (logicalY - boardOriginY) * next - pointerY;
-  markChanged("ボードの表示倍率を変更");
-}

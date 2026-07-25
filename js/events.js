@@ -328,9 +328,6 @@ $("#sort-button").addEventListener("click", cycleSort);
 $("#manage-columns-button").addEventListener("click", () => {
   openDatabaseColumnModal(activeProject().columns[0]?.id || null);
 });
-$("#zoom-in").addEventListener("click", () => setBoardZoom(0.1));
-$("#zoom-out").addEventListener("click", () => setBoardZoom(-0.1));
-
 dom.search.addEventListener("input", () => {
   state.settings.query = dom.search.value;
   renderDatabase();

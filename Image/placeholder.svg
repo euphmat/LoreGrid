@@ -1,0 +1,24 @@
+<svg width="960" height="540" viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#202530"/>
+      <stop offset="1" stop-color="#111319"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(470 235) rotate(90) scale(270 400)">
+      <stop stop-color="#D06347" stop-opacity=".48"/>
+      <stop offset="1" stop-color="#D06347" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.5" fill="#fff" fill-opacity=".08"/>
+    </pattern>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <rect width="960" height="540" fill="url(#grid)"/>
+  <rect width="960" height="540" fill="url(#glow)"/>
+  <g fill="none" stroke="#E4B268" stroke-width="2" stroke-opacity=".52">
+    <circle cx="480" cy="250" r="96"/>
+    <path d="M480 116 536 218 654 250 536 282 480 384 424 282 306 250 424 218Z"/>
+    <circle cx="480" cy="250" r="32"/>
+  </g>
+  <text x="480" y="470" text-anchor="middle" fill="#F1E8DC" fill-opacity=".6" font-family="Georgia,serif" font-size="18" letter-spacing="8">LOREGRID ARCHIVE</text>
+</svg>

@@ -326,10 +326,11 @@ function boardExtentSize(item) {
   if (item.organisation) {
     return { width: item.groupWidth, height: item.groupHeight };
   }
-  const card = $(`[data-board-id="${CSS.escape(item.id)}"]`, dom.boardCards);
   return {
-    width: Number(card?.offsetWidth) || 188,
-    height: Number(card?.offsetHeight) || (item.imageId || item.image ? 180 : 108),
+    width: BOARD_CARD_WIDTH,
+    height: item.imageId || item.image
+      ? BOARD_CARD_IMAGE_HEIGHT
+      : BOARD_CARD_HEIGHT,
   };
 }
 
@@ -361,14 +362,16 @@ function calculateBoardCanvasMetrics() {
       maximumY = Math.max(maximumY, item.y + size.height);
     });
   }
-  const originX = Math.floor(minimumX - paddingX);
-  const originY = Math.floor(minimumY - paddingY);
+  const originX =
+    Math.floor((minimumX - paddingX) / BOARD_GRID_SIZE) * BOARD_GRID_SIZE;
+  const originY =
+    Math.floor((minimumY - paddingY) / BOARD_GRID_SIZE) * BOARD_GRID_SIZE;
   const focusItem = activeEntity() || entities[0] || null;
   return {
     originX,
     originY,
-    width: Math.ceil(maximumX + paddingX - originX),
-    height: Math.ceil(maximumY + paddingY - originY),
+    width: ceilToBoardGrid(maximumX + paddingX - originX),
+    height: ceilToBoardGrid(maximumY + paddingY - originY),
     focusX: focusItem ? focusItem.x - 120 : 0,
     focusY: focusItem ? focusItem.y - 90 : 0,
   };
@@ -406,11 +409,10 @@ function updateBoardCanvasMetrics() {
 
 const RELATION_ANCHORS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const DIAGONAL_RELATION_ANCHORS = new Set(["nw", "ne", "se", "sw"]);
+const ORTHOGONAL_RELATION_ANCHORS = ["n", "e", "s", "w"];
 
 function anchorPoint(item, anchor) {
-  const card = $(`[data-board-id="${CSS.escape(item.id)}"]`, dom.boardCards);
-  const width = Number(card?.offsetWidth) || 188;
-  const height = Number(card?.offsetHeight) || (item.imageId || item.image ? 180 : 108);
+  const { width, height } = boardExtentSize(item);
   const points = {
     nw: [0, 0],
     n: [width / 2, 0],
@@ -445,10 +447,10 @@ function closestRelationAnchorPair(
   preferredSourceAnchor = "e",
   preferredTargetAnchor = "w",
 ) {
-  const initialSourceAnchor = RELATION_ANCHORS.includes(preferredSourceAnchor)
+  const initialSourceAnchor = ORTHOGONAL_RELATION_ANCHORS.includes(preferredSourceAnchor)
     ? preferredSourceAnchor
     : "e";
-  const initialTargetAnchor = RELATION_ANCHORS.includes(preferredTargetAnchor)
+  const initialTargetAnchor = ORTHOGONAL_RELATION_ANCHORS.includes(preferredTargetAnchor)
     ? preferredTargetAnchor
     : "w";
   const initialSourcePoint = anchorPoint(source, initialSourceAnchor);
@@ -464,9 +466,9 @@ function closestRelationAnchorPair(
       Number(DIAGONAL_RELATION_ANCHORS.has(initialTargetAnchor)),
     preservesPreferredPair: true,
   };
-  RELATION_ANCHORS.forEach((sourceAnchor) => {
+  ORTHOGONAL_RELATION_ANCHORS.forEach((sourceAnchor) => {
     const sourcePoint = anchorPoint(source, sourceAnchor);
-    RELATION_ANCHORS.forEach((targetAnchor) => {
+    ORTHOGONAL_RELATION_ANCHORS.forEach((targetAnchor) => {
       const targetPoint = anchorPoint(target, targetAnchor);
       const dx = targetPoint.x - sourcePoint.x;
       const dy = targetPoint.y - sourcePoint.y;
@@ -495,8 +497,619 @@ function closestRelationAnchorPair(
   return closest;
 }
 
+function compactOrthogonalPoints(points) {
+  const compact = [];
+  points.forEach((point) => {
+    const previous = compact.at(-1);
+    if (previous?.x === point.x && previous?.y === point.y) return;
+    compact.push({ x: point.x, y: point.y });
+    if (compact.length < 3) return;
+    const a = compact.at(-3);
+    const b = compact.at(-2);
+    const c = compact.at(-1);
+    if ((a.x === b.x && b.x === c.x) || (a.y === b.y && b.y === c.y)) {
+      compact.splice(compact.length - 2, 1);
+    }
+  });
+  return compact;
+}
+
+function orthogonalSegments(points) {
+  return points.slice(1).map((point, index) => ({
+    a: points[index],
+    b: point,
+  }));
+}
+
+function segmentLength(segment) {
+  return Math.abs(segment.b.x - segment.a.x) + Math.abs(segment.b.y - segment.a.y);
+}
+
+function segmentIntersectsRect(segment, rect) {
+  if (segment.a.x === segment.b.x) {
+    const x = segment.a.x;
+    const top = Math.min(segment.a.y, segment.b.y);
+    const bottom = Math.max(segment.a.y, segment.b.y);
+    return (
+      x > rect.left &&
+      x < rect.right &&
+      bottom > rect.top &&
+      top < rect.bottom
+    );
+  }
+  const y = segment.a.y;
+  const left = Math.min(segment.a.x, segment.b.x);
+  const right = Math.max(segment.a.x, segment.b.x);
+  return (
+    y > rect.top &&
+    y < rect.bottom &&
+    right > rect.left &&
+    left < rect.right
+  );
+}
+
+function relationObstacleRects(items) {
+  return items
+    .filter((item) => !item.organisation)
+    .map((item) => {
+      const rect = boardRectFor(item);
+      const clearance = BOARD_GRID_SIZE / 2;
+      return {
+        item,
+        left: rect.left - clearance,
+        top: rect.top - clearance,
+        right: rect.right + clearance,
+        bottom: rect.bottom + clearance,
+      };
+    });
+}
+
+function pointEquals(first, second) {
+  return first.x === second.x && first.y === second.y;
+}
+
+function segmentIntersectionKind(first, second) {
+  const firstHorizontal = first.a.y === first.b.y;
+  const secondHorizontal = second.a.y === second.b.y;
+  if (firstHorizontal !== secondHorizontal) {
+    const horizontal = firstHorizontal ? first : second;
+    const vertical = firstHorizontal ? second : first;
+    const x = vertical.a.x;
+    const y = horizontal.a.y;
+    const withinHorizontal =
+      x >= Math.min(horizontal.a.x, horizontal.b.x) &&
+      x <= Math.max(horizontal.a.x, horizontal.b.x);
+    const withinVertical =
+      y >= Math.min(vertical.a.y, vertical.b.y) &&
+      y <= Math.max(vertical.a.y, vertical.b.y);
+    return withinHorizontal && withinVertical
+      ? { kind: "cross", point: { x, y } }
+      : null;
+  }
+  const firstAxis = firstHorizontal ? first.a.y : first.a.x;
+  const secondAxis = secondHorizontal ? second.a.y : second.a.x;
+  if (firstAxis !== secondAxis) return null;
+  const firstStart = firstHorizontal
+    ? Math.min(first.a.x, first.b.x)
+    : Math.min(first.a.y, first.b.y);
+  const firstEnd = firstHorizontal
+    ? Math.max(first.a.x, first.b.x)
+    : Math.max(first.a.y, first.b.y);
+  const secondStart = secondHorizontal
+    ? Math.min(second.a.x, second.b.x)
+    : Math.min(second.a.y, second.b.y);
+  const secondEnd = secondHorizontal
+    ? Math.max(second.a.x, second.b.x)
+    : Math.max(second.a.y, second.b.y);
+  const overlapStart = Math.max(firstStart, secondStart);
+  const overlapEnd = Math.min(firstEnd, secondEnd);
+  if (overlapStart > overlapEnd) return null;
+  const point = firstHorizontal
+    ? { x: overlapStart, y: firstAxis }
+    : { x: firstAxis, y: overlapStart };
+  return {
+    kind: overlapStart === overlapEnd ? "touch" : "overlap",
+    point,
+  };
+}
+
+function sharedRelationEndpoint(point, candidate, routed) {
+  const candidateEndpoints = [candidate[0], candidate.at(-1)];
+  const routedEndpoints = [routed.points[0], routed.points.at(-1)];
+  return (
+    candidateEndpoints.some((endpoint) => pointEquals(endpoint, point)) &&
+    routedEndpoints.some((endpoint) => pointEquals(endpoint, point))
+  );
+}
+
+function relationRouteScore(points, source, target, obstacles, routedRoutes) {
+  const segments = orthogonalSegments(points);
+  let obstacleHits = 0;
+  segments.forEach((segment, segmentIndex) => {
+    obstacles.forEach((obstacle) => {
+      if (
+        (obstacle.item.id === source.id && segmentIndex === 0) ||
+        (obstacle.item.id === target.id && segmentIndex === segments.length - 1)
+      ) {
+        return;
+      }
+      if (segmentIntersectsRect(segment, obstacle)) obstacleHits += 1;
+    });
+  });
+  let crossings = 0;
+  let overlaps = 0;
+  routedRoutes.forEach((routed) => {
+    segments.forEach((segment) => {
+      routed.segments.forEach((otherSegment) => {
+        const intersection = segmentIntersectionKind(segment, otherSegment);
+        if (
+          !intersection ||
+          (
+            intersection.kind !== "overlap" &&
+            sharedRelationEndpoint(intersection.point, points, routed)
+          )
+        ) {
+          return;
+        }
+        if (intersection.kind === "overlap") overlaps += 1;
+        else crossings += 1;
+      });
+    });
+  });
+  const length = segments.reduce((sum, segment) => sum + segmentLength(segment), 0);
+  const bends = Math.max(0, points.length - 2);
+  return (
+    obstacleHits * 1_000_000_000 +
+    crossings * 10_000_000 +
+    overlaps * 20_000_000 +
+    bends * BOARD_GRID_SIZE * 2 +
+    length
+  );
+}
+
+function limitedRoutingChannels(values, center, minimum, maximum, routeIndex) {
+  const unique = [...new Set(values.map(snapToBoardGrid))];
+  const nearby = unique
+    .sort((a, b) => Math.abs(a - center) - Math.abs(b - center))
+    .slice(0, 12);
+  const laneOffset = (routeIndex + 2) * BOARD_GRID_SIZE;
+  return [
+    ...new Set([
+      ...nearby,
+      snapToBoardGrid(minimum - laneOffset),
+      snapToBoardGrid(maximum + laneOffset),
+      snapToBoardGrid(minimum - laneOffset - BOARD_GRID_SIZE),
+      snapToBoardGrid(maximum + laneOffset + BOARD_GRID_SIZE),
+    ]),
+  ];
+}
+
+function relationRouteGridNodes(points) {
+  const nodes = [];
+  orthogonalSegments(points).forEach((segment) => {
+    const dx = Math.sign(segment.b.x - segment.a.x) * BOARD_GRID_SIZE;
+    const dy = Math.sign(segment.b.y - segment.a.y) * BOARD_GRID_SIZE;
+    let x = segment.a.x;
+    let y = segment.a.y;
+    nodes.push({ x, y });
+    while (x !== segment.b.x || y !== segment.b.y) {
+      x += dx;
+      y += dy;
+      nodes.push({ x, y });
+    }
+  });
+  return nodes;
+}
+
+function pushRouteQueue(queue, entry) {
+  queue.push(entry);
+  let index = queue.length - 1;
+  while (index > 0) {
+    const parent = Math.floor((index - 1) / 2);
+    if (queue[parent].priority <= entry.priority) break;
+    queue[index] = queue[parent];
+    index = parent;
+  }
+  queue[index] = entry;
+}
+
+function popRouteQueue(queue) {
+  const first = queue[0];
+  const last = queue.pop();
+  if (!queue.length) return first;
+  let index = 0;
+  queue[0] = last;
+  while (true) {
+    const left = index * 2 + 1;
+    const right = left + 1;
+    let smallest = index;
+    if (
+      left < queue.length &&
+      queue[left].priority < queue[smallest].priority
+    ) {
+      smallest = left;
+    }
+    if (
+      right < queue.length &&
+      queue[right].priority < queue[smallest].priority
+    ) {
+      smallest = right;
+    }
+    if (smallest === index) break;
+    [queue[index], queue[smallest]] = [queue[smallest], queue[index]];
+    index = smallest;
+  }
+  return first;
+}
+
+function reconstructGridRoute(cameFrom, states, endKey) {
+  const points = [];
+  let key = endKey;
+  while (key) {
+    const state = states.get(key);
+    if (!state) break;
+    points.push({ x: state.x, y: state.y });
+    key = cameFrom.get(key);
+  }
+  return points.reverse();
+}
+
+function findCrossingFreeGridRoute(
+  source,
+  target,
+  items,
+  routedRoutes,
+  routeIndex,
+) {
+  const obstacles = relationObstacleRects(items);
+  const occupied = new Set();
+  routedRoutes.forEach((route) => {
+    relationRouteGridNodes(route.points).forEach((point) =>
+      occupied.add(`${point.x}:${point.y}`),
+    );
+  });
+  const extentPoints = [
+    ...items.flatMap((item) => {
+      const rect = boardRectFor(item);
+      return [
+        { x: rect.left, y: rect.top },
+        { x: rect.right, y: rect.bottom },
+      ];
+    }),
+    ...routedRoutes.flatMap((route) => route.points),
+  ];
+  const margin = (12 + routeIndex * 2) * BOARD_GRID_SIZE;
+  const minimumX =
+    Math.min(...extentPoints.map((point) => point.x)) - margin;
+  const maximumX =
+    Math.max(...extentPoints.map((point) => point.x)) + margin;
+  const minimumY =
+    Math.min(...extentPoints.map((point) => point.y)) - margin;
+  const maximumY =
+    Math.max(...extentPoints.map((point) => point.y)) + margin;
+  const directions = [
+    { id: "n", dx: 0, dy: -BOARD_GRID_SIZE },
+    { id: "e", dx: BOARD_GRID_SIZE, dy: 0 },
+    { id: "s", dx: 0, dy: BOARD_GRID_SIZE },
+    { id: "w", dx: -BOARD_GRID_SIZE, dy: 0 },
+  ];
+  let best = null;
+  ORTHOGONAL_RELATION_ANCHORS.forEach((sourceAnchor) => {
+    ORTHOGONAL_RELATION_ANCHORS.forEach((targetAnchor) => {
+      const start = anchorPoint(source, sourceAnchor);
+      const end = anchorPoint(target, targetAnchor);
+      const sourceVector = anchorVector(sourceAnchor);
+      const targetVector = anchorVector(targetAnchor);
+      const startPort = {
+        x: start.x + sourceVector[0] * BOARD_GRID_SIZE,
+        y: start.y + sourceVector[1] * BOARD_GRID_SIZE,
+      };
+      const endPort = {
+        x: end.x + targetVector[0] * BOARD_GRID_SIZE,
+        y: end.y + targetVector[1] * BOARD_GRID_SIZE,
+      };
+      if (
+        occupied.has(`${startPort.x}:${startPort.y}`) ||
+        occupied.has(`${endPort.x}:${endPort.y}`)
+      ) {
+        return;
+      }
+      const queue = [];
+      const costs = new Map();
+      const cameFrom = new Map();
+      const states = new Map();
+      const startKey = `${startPort.x}:${startPort.y}:start`;
+      costs.set(startKey, 0);
+      states.set(startKey, { ...startPort, direction: "start" });
+      pushRouteQueue(queue, {
+        key: startKey,
+        priority:
+          (Math.abs(endPort.x - startPort.x) +
+            Math.abs(endPort.y - startPort.y)) /
+          BOARD_GRID_SIZE,
+      });
+      let completedKey = "";
+      while (queue.length) {
+        const currentEntry = popRouteQueue(queue);
+        const current = states.get(currentEntry.key);
+        const currentCost = costs.get(currentEntry.key);
+        if (current.x === endPort.x && current.y === endPort.y) {
+          completedKey = currentEntry.key;
+          break;
+        }
+        directions.forEach((direction) => {
+          const next = {
+            x: current.x + direction.dx,
+            y: current.y + direction.dy,
+            direction: direction.id,
+          };
+          if (
+            next.x < minimumX ||
+            next.x > maximumX ||
+            next.y < minimumY ||
+            next.y > maximumY
+          ) {
+            return;
+          }
+          const coordinateKey = `${next.x}:${next.y}`;
+          if (occupied.has(coordinateKey)) return;
+          if (
+            obstacles.some(
+              (rect) =>
+                next.x > rect.left &&
+                next.x < rect.right &&
+                next.y > rect.top &&
+                next.y < rect.bottom,
+            )
+          ) {
+            return;
+          }
+          const turnCost =
+            current.direction === "start" ||
+            current.direction === direction.id
+              ? 0
+              : 0.4;
+          const nextCost = currentCost + 1 + turnCost;
+          const nextKey = `${next.x}:${next.y}:${direction.id}`;
+          if (nextCost >= (costs.get(nextKey) ?? Number.POSITIVE_INFINITY)) {
+            return;
+          }
+          costs.set(nextKey, nextCost);
+          cameFrom.set(nextKey, currentEntry.key);
+          states.set(nextKey, next);
+          const heuristic =
+            (Math.abs(endPort.x - next.x) +
+              Math.abs(endPort.y - next.y)) /
+            BOARD_GRID_SIZE;
+          pushRouteQueue(queue, {
+            key: nextKey,
+            priority: nextCost + heuristic,
+          });
+        });
+      }
+      if (!completedKey) return;
+      const points = compactOrthogonalPoints([
+        start,
+        startPort,
+        ...reconstructGridRoute(cameFrom, states, completedKey),
+        endPort,
+        end,
+      ]);
+      const score = relationRouteScore(
+        points,
+        source,
+        target,
+        obstacles,
+        routedRoutes,
+      );
+      if (!best || score < best.score) {
+        best = { points, score, sourceAnchor, targetAnchor };
+      }
+    });
+  });
+  return best;
+}
+
+function routeRelationOrthogonally(
+  source,
+  target,
+  items,
+  routedRoutes,
+  routeIndex,
+) {
+  const obstacles = relationObstacleRects(items);
+  const allRects = obstacles.length
+    ? obstacles
+    : [
+        {
+          left: Math.min(source.x, target.x),
+          top: Math.min(source.y, target.y),
+          right: Math.max(source.x, target.x),
+          bottom: Math.max(source.y, target.y),
+        },
+      ];
+  const minimumX = Math.min(...allRects.map((rect) => rect.left));
+  const maximumX = Math.max(...allRects.map((rect) => rect.right));
+  const minimumY = Math.min(...allRects.map((rect) => rect.top));
+  const maximumY = Math.max(...allRects.map((rect) => rect.bottom));
+  let best = null;
+  ORTHOGONAL_RELATION_ANCHORS.forEach((sourceAnchor) => {
+    ORTHOGONAL_RELATION_ANCHORS.forEach((targetAnchor) => {
+      const start = anchorPoint(source, sourceAnchor);
+      const end = anchorPoint(target, targetAnchor);
+      const startVector = anchorVector(sourceAnchor);
+      const endVector = anchorVector(targetAnchor);
+      const startPort = {
+        x: start.x + startVector[0] * BOARD_GRID_SIZE,
+        y: start.y + startVector[1] * BOARD_GRID_SIZE,
+      };
+      const endPort = {
+        x: end.x + endVector[0] * BOARD_GRID_SIZE,
+        y: end.y + endVector[1] * BOARD_GRID_SIZE,
+      };
+      const centerX = (startPort.x + endPort.x) / 2;
+      const centerY = (startPort.y + endPort.y) / 2;
+      const xChannels = limitedRoutingChannels(
+        [
+          startPort.x,
+          endPort.x,
+          centerX,
+          ...obstacles.flatMap((rect) => [
+            rect.left - BOARD_GRID_SIZE / 2,
+            rect.right + BOARD_GRID_SIZE / 2,
+          ]),
+        ],
+        centerX,
+        minimumX,
+        maximumX,
+        routeIndex,
+      );
+      const yChannels = limitedRoutingChannels(
+        [
+          startPort.y,
+          endPort.y,
+          centerY,
+          ...obstacles.flatMap((rect) => [
+            rect.top - BOARD_GRID_SIZE / 2,
+            rect.bottom + BOARD_GRID_SIZE / 2,
+          ]),
+        ],
+        centerY,
+        minimumY,
+        maximumY,
+        routeIndex,
+      );
+      const candidates = [];
+      if (startPort.x === endPort.x || startPort.y === endPort.y) {
+        candidates.push([start, startPort, endPort, end]);
+      }
+      xChannels.forEach((x) => {
+        candidates.push([
+          start,
+          startPort,
+          { x, y: startPort.y },
+          { x, y: endPort.y },
+          endPort,
+          end,
+        ]);
+      });
+      yChannels.forEach((y) => {
+        candidates.push([
+          start,
+          startPort,
+          { x: startPort.x, y },
+          { x: endPort.x, y },
+          endPort,
+          end,
+        ]);
+      });
+      xChannels.forEach((x) => {
+        yChannels.forEach((y) => {
+          candidates.push([
+            start,
+            startPort,
+            { x, y: startPort.y },
+            { x, y },
+            { x: endPort.x, y },
+            endPort,
+            end,
+          ]);
+          candidates.push([
+            start,
+            startPort,
+            { x: startPort.x, y },
+            { x, y },
+            { x, y: endPort.y },
+            endPort,
+            end,
+          ]);
+        });
+      });
+      candidates.forEach((candidate) => {
+        const points = compactOrthogonalPoints(candidate);
+        const score = relationRouteScore(
+          points,
+          source,
+          target,
+          obstacles,
+          routedRoutes,
+        );
+        if (!best || score < best.score) {
+          best = { points, score, sourceAnchor, targetAnchor };
+        }
+      });
+    });
+  });
+  if (best?.score >= 10_000_000 && routedRoutes.length) {
+    const gridRoute = findCrossingFreeGridRoute(
+      source,
+      target,
+      items,
+      routedRoutes,
+      routeIndex,
+    );
+    if (gridRoute && gridRoute.score < best.score) best = gridRoute;
+  }
+  return best;
+}
+
+function orthogonalPathData(points, radius = 8) {
+  if (points.length < 2) return "";
+  let path = `M${points[0].x} ${points[0].y}`;
+  for (let index = 1; index < points.length; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    if (!next) {
+      path += ` L${current.x} ${current.y}`;
+      continue;
+    }
+    const previous = points[index - 1];
+    const incomingLength = Math.hypot(
+      current.x - previous.x,
+      current.y - previous.y,
+    );
+    const outgoingLength = Math.hypot(
+      next.x - current.x,
+      next.y - current.y,
+    );
+    const cornerRadius = Math.min(radius, incomingLength / 2, outgoingLength / 2);
+    const before = {
+      x: current.x - ((current.x - previous.x) / incomingLength) * cornerRadius,
+      y: current.y - ((current.y - previous.y) / incomingLength) * cornerRadius,
+    };
+    const after = {
+      x: current.x + ((next.x - current.x) / outgoingLength) * cornerRadius,
+      y: current.y + ((next.y - current.y) / outgoingLength) * cornerRadius,
+    };
+    path += ` L${before.x} ${before.y} Q${current.x} ${current.y} ${after.x} ${after.y}`;
+  }
+  return path;
+}
+
+function relationLabelPoint(points) {
+  const segments = orthogonalSegments(points);
+  const preferred = segments.slice(1, -1);
+  const interior = preferred.length ? preferred : segments;
+  const horizontal = interior.filter(
+    (segment) => segment.a.y === segment.b.y,
+  );
+  const pool = horizontal.length ? horizontal : interior;
+  const longest = pool.reduce(
+    (best, segment) =>
+      !best || segmentLength(segment) > segmentLength(best) ? segment : best,
+    null,
+  );
+  return longest
+    ? {
+        x: (longest.a.x + longest.b.x) / 2,
+        y: (longest.a.y + longest.b.y) / 2,
+      }
+    : points[0];
+}
+
 function renderRelationLines(items) {
   const links = getAllRenderableLinks(items);
+  const routedRoutes = [];
   dom.relationLines.setAttribute(
     "viewBox",
     `${boardOriginX} ${boardOriginY} ${boardCanvasWidth} ${boardCanvasHeight}`,
@@ -507,31 +1120,25 @@ function renderRelationLines(items) {
         <path d="M 0 0 L 10 5 L 0 10 z"></path>
       </marker>
     </defs>
-    ${links
-    .map(({ source, target, link }) => {
-      const { sourceAnchor, targetAnchor } = closestRelationAnchorPair(
+    ${links.map(({ source, target, link }, routeIndex) => {
+      const route = routeRelationOrthogonally(
         source,
         target,
-        link.sourceAnchor,
-        link.targetAnchor,
+        items,
+        routedRoutes,
+        routeIndex,
       );
-      link.sourceAnchor = sourceAnchor;
-      link.targetAnchor = targetAnchor;
-      const start = anchorPoint(source, sourceAnchor);
-      const end = anchorPoint(target, targetAnchor);
-      const startVector = anchorVector(sourceAnchor);
-      const endVector = anchorVector(targetAnchor);
-      const distance = Math.max(55, Math.min(130, Math.hypot(end.x - start.x, end.y - start.y) * 0.32));
-      const c1x = start.x + startVector[0] * distance;
-      const c1y = start.y + startVector[1] * distance;
-      const c2x = end.x + endVector[0] * distance;
-      const c2y = end.y + endVector[1] * distance;
-      const sx = start.x;
-      const sy = start.y;
-      const tx = end.x;
-      const ty = end.y;
-      const mx = (sx + tx) / 2;
-      const my = (sy + ty) / 2;
+      if (!route) return "";
+      link.sourceAnchor = route.sourceAnchor;
+      link.targetAnchor = route.targetAnchor;
+      const pathData = orthogonalPathData(route.points);
+      const labelPoint = relationLabelPoint(route.points);
+      const mx = labelPoint.x;
+      const my = labelPoint.y;
+      routedRoutes.push({
+        points: route.points,
+        segments: orthogonalSegments(route.points),
+      });
       const combinedLabel = link.memo || "Memoを追加";
       const safeLabel = combinedLabel.replace(/\s+/g, " ").slice(0, 28);
       const labelWidth = Math.max(68, safeLabel.length * 9 + 24);
@@ -553,17 +1160,17 @@ function renderRelationLines(items) {
           data-relation-target="${escapeHTML(target.id)}"
         >
           <title>${escapeHTML(combinedLabel)}</title>
-          <path class="relation-line-hit" d="M${sx} ${sy} C${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}" />
-          <path class="relation-line" d="M${sx} ${sy} C${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}" ${markerStart} ${markerEnd} />
+          <path class="relation-line-clearance" d="${pathData}" />
+          <path class="relation-line-hit" d="${pathData}" />
+          <path class="relation-line" d="${pathData}" ${markerStart} ${markerEnd} />
           <rect class="relation-label-bg" x="${mx - labelWidth / 2}" y="${my - 12}" width="${labelWidth}" height="24" rx="12" />
           <text class="relation-label-text" x="${mx}" y="${my + 3}" text-anchor="middle">${escapeHTML(safeLabel)}</text>
         </g>`;
-    })
-    .join("")}`;
+    }).join("")}`;
 }
 
 function connectorHandlesMarkup(item) {
-  return ["nw", "n", "ne", "e", "se", "s", "sw", "w"]
+  return ORTHOGONAL_RELATION_ANCHORS
     .map(
       (anchor) =>
         `<button
@@ -660,6 +1267,7 @@ function organisationGroupMarkup(item) {
 }
 
 function renderBoard() {
+  const layoutChanged = normalizeBoardLayout();
   updateBoardCanvasMetrics();
   const items = visibleEntities();
   const groups = items
@@ -671,7 +1279,7 @@ function renderBoard() {
     cards
     .map((item) => {
       return `
-        <article class="board-card ${item.id === state.activeEntityId ? "is-selected" : ""}"
+        <article class="board-card ${item.imageId || item.image ? "has-image" : ""} ${item.id === state.activeEntityId ? "is-selected" : ""}"
           data-board-id="${escapeHTML(item.id)}"
           style="left:${item.x}px;top:${item.y}px;--entity-color:${escapeHTML(activeProject().accent)}">
           ${imageMarkup(item, "board-card-image")}
@@ -695,6 +1303,7 @@ function renderBoard() {
   dom.boardCanvas.style.zoom = zoom;
   $("#zoom-label").textContent = `${Math.round(zoom * 100)}%`;
   addImageFallbacks(dom.boardView);
+  if (layoutChanged) markChanged("ボード配置をグリッドへ整列しました");
 }
 
 function boardListBadgesMarkup(item) {

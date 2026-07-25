@@ -37,21 +37,30 @@ function boardPointFromClient(clientX, clientY) {
 
 function newEntityBoardCoordinates(index = 0) {
   const zoom = Number(state.settings.boardZoom) || 1;
-  const offset = (index % 5) * 18;
-  return {
-    x: Math.round(
-      boardOriginX +
-      (dom.boardViewport.scrollLeft + dom.boardViewport.clientWidth / 2) / zoom -
-      94 +
-      offset,
-    ),
-    y: Math.round(
-      boardOriginY +
-      (dom.boardViewport.scrollTop + dom.boardViewport.clientHeight / 2) / zoom -
-      52 +
-      offset,
-    ),
-  };
+  const desiredX = snapToBoardGrid(
+    boardOriginX +
+    (dom.boardViewport.scrollLeft + dom.boardViewport.clientWidth / 2) / zoom -
+    BOARD_CARD_WIDTH / 2 +
+    (index % 5) * BOARD_GRID_SIZE,
+  );
+  const desiredY = snapToBoardGrid(
+    boardOriginY +
+    (dom.boardViewport.scrollTop + dom.boardViewport.clientHeight / 2) / zoom -
+    BOARD_CARD_HEIGHT / 2 +
+    (index % 5) * BOARD_GRID_SIZE,
+  );
+  return findNearestAvailableBoardPosition(
+    {
+      id: "",
+      organisation: false,
+      image: "",
+      imageId: "",
+      parentGroupId: "",
+    },
+    desiredX,
+    desiredY,
+    "",
+  );
 }
 
 function nearestCardAnchor(card, clientX, clientY) {
@@ -166,11 +175,197 @@ function itemBoardSize(item) {
   if (item.organisation) {
     return { width: item.groupWidth, height: item.groupHeight };
   }
-  const card = $(`[data-board-id="${CSS.escape(item.id)}"]`, dom.boardCards);
   return {
-    width: Number(card?.offsetWidth) || 188,
-    height: Number(card?.offsetHeight) || (item.imageId || item.image ? 180 : 104),
+    width: BOARD_CARD_WIDTH,
+    height: item.imageId || item.image
+      ? BOARD_CARD_IMAGE_HEIGHT
+      : BOARD_CARD_HEIGHT,
   };
+}
+
+function boardRectFor(item, x = item.x, y = item.y) {
+  const size = itemBoardSize(item);
+  return {
+    left: x,
+    top: y,
+    right: x + size.width,
+    bottom: y + size.height,
+  };
+}
+
+function boardRectsOverlap(first, second, gap = BOARD_GRID_GAP) {
+  return (
+    first.left < second.right + gap &&
+    first.right + gap > second.left &&
+    first.top < second.bottom + gap &&
+    first.bottom + gap > second.top
+  );
+}
+
+function boardPositionIsAvailable(item, x, y, parentGroupId = item.parentGroupId) {
+  const candidateRect = boardRectFor(item, x, y);
+  const ignoredIds = item.organisation ? groupDescendantIds(item.id) : new Set();
+  return !activeProject().entities.some((other) => {
+    if (
+      other === item ||
+      other.id === item.id ||
+      ignoredIds.has(other.id) ||
+      (other.parentGroupId || "") !== (parentGroupId || "")
+    ) {
+      return false;
+    }
+    return boardRectsOverlap(candidateRect, boardRectFor(other));
+  });
+}
+
+function itemMovementBoundsForParent(item, parentGroupId = item.parentGroupId) {
+  const size = itemBoardSize(item);
+  const parent = getEntityById(parentGroupId);
+  if (!parent?.organisation || parent.id === item.id) {
+    return {
+      minX: Number.NEGATIVE_INFINITY,
+      minY: Number.NEGATIVE_INFINITY,
+      maxX: Number.POSITIVE_INFINITY,
+      maxY: Number.POSITIVE_INFINITY,
+    };
+  }
+  const minX = parent.x + BOARD_GROUP_INSET;
+  const minY =
+    parent.y + BOARD_GROUP_HEADER_HEIGHT + BOARD_GROUP_INSET;
+  return {
+    minX,
+    minY,
+    maxX: Math.max(
+      minX,
+      parent.x + parent.groupWidth - BOARD_GROUP_INSET - size.width,
+    ),
+    maxY: Math.max(
+      minY,
+      parent.y + parent.groupHeight - BOARD_GROUP_INSET - size.height,
+    ),
+  };
+}
+
+function clampBoardPositionToBounds(x, y, bounds) {
+  return {
+    x: snapToBoardGrid(Math.max(bounds.minX, Math.min(bounds.maxX, x))),
+    y: snapToBoardGrid(Math.max(bounds.minY, Math.min(bounds.maxY, y))),
+  };
+}
+
+function findNearestAvailableBoardPosition(
+  item,
+  desiredX,
+  desiredY,
+  parentGroupId = item.parentGroupId,
+  allowParentExpansion = true,
+) {
+  const bounds = itemMovementBoundsForParent(item, parentGroupId);
+  const origin = clampBoardPositionToBounds(
+    snapToBoardGrid(desiredX),
+    snapToBoardGrid(desiredY),
+    bounds,
+  );
+  const seen = new Set();
+  const boundedRadius =
+    Number.isFinite(bounds.maxX) && Number.isFinite(bounds.maxY)
+      ? Math.ceil(
+          Math.max(
+            bounds.maxX - bounds.minX,
+            bounds.maxY - bounds.minY,
+          ) / BOARD_GRID_SIZE,
+        ) + 2
+      : 80;
+  for (let radius = 0; radius <= boundedRadius; radius += 1) {
+    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        if (
+          radius &&
+          Math.abs(offsetX) !== radius &&
+          Math.abs(offsetY) !== radius
+        ) {
+          continue;
+        }
+        const candidate = clampBoardPositionToBounds(
+          origin.x + offsetX * BOARD_GRID_SIZE,
+          origin.y + offsetY * BOARD_GRID_SIZE,
+          bounds,
+        );
+        const key = `${candidate.x}:${candidate.y}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (boardPositionIsAvailable(item, candidate.x, candidate.y, parentGroupId)) {
+          return candidate;
+        }
+      }
+    }
+  }
+  const parent = getEntityById(parentGroupId);
+  if (allowParentExpansion && parent?.organisation) {
+    const growth = ceilToBoardGrid(
+      Math.max(BOARD_CARD_HEIGHT, itemBoardSize(item).height + BOARD_GRID_GAP),
+    );
+    parent.groupHeight = ceilToBoardGrid(parent.groupHeight + growth);
+    const ancestor = parentGroupFor(parent);
+    if (ancestor) ensureGroupCanContain(ancestor, parent);
+    return findNearestAvailableBoardPosition(
+      item,
+      desiredX,
+      desiredY,
+      parentGroupId,
+      false,
+    );
+  }
+  return origin;
+}
+
+function normalizeBoardLayout() {
+  const entities = activeProject().entities;
+  const previousLayout = new Map(
+    entities.map((item) => [
+      item.id,
+      [item.x, item.y, item.groupWidth, item.groupHeight],
+    ]),
+  );
+  entities.forEach((item) => {
+    item.x = snapToBoardGrid(item.x);
+    item.y = snapToBoardGrid(item.y);
+    if (item.organisation) {
+      item.groupWidth = Math.max(240, ceilToBoardGrid(item.groupWidth));
+      item.groupHeight = Math.max(192, ceilToBoardGrid(item.groupHeight));
+    }
+  });
+  const placePlane = (parentGroupId = "") => {
+    entities
+      .filter((item) => (item.parentGroupId || "") === parentGroupId)
+      .sort((a, b) => Number(b.organisation) - Number(a.organisation))
+      .forEach((item) => {
+        const position = findNearestAvailableBoardPosition(
+          item,
+          item.x,
+          item.y,
+          parentGroupId,
+        );
+        moveItemAndDescendants(item, position.x, position.y);
+      });
+    entities
+      .filter(
+        (item) =>
+          item.organisation && (item.parentGroupId || "") === parentGroupId,
+      )
+      .forEach((group) => placePlane(group.id));
+  };
+  for (let pass = 0; pass < 3; pass += 1) placePlane();
+  return entities.some((item) => {
+    const previous = previousLayout.get(item.id);
+    return (
+      !previous ||
+      previous[0] !== item.x ||
+      previous[1] !== item.y ||
+      previous[2] !== item.groupWidth ||
+      previous[3] !== item.groupHeight
+    );
+  });
 }
 
 function parentGroupFor(item) {
@@ -179,29 +374,12 @@ function parentGroupFor(item) {
 }
 
 function itemMovementBounds(item) {
-  const size = itemBoardSize(item);
-  const parent = parentGroupFor(item);
-  if (!parent) {
-    return {
-      minX: Number.NEGATIVE_INFINITY,
-      minY: Number.NEGATIVE_INFINITY,
-      maxX: Number.POSITIVE_INFINITY,
-      maxY: Number.POSITIVE_INFINITY,
-    };
-  }
-  const minX = parent.x + 12;
-  const minY = parent.y + 42;
-  return {
-    minX,
-    minY,
-    maxX: Math.max(minX, parent.x + parent.groupWidth - 12 - size.width),
-    maxY: Math.max(minY, parent.y + parent.groupHeight - 12 - size.height),
-  };
+  return itemMovementBoundsForParent(item, item.parentGroupId);
 }
 
 function moveItemAndDescendants(item, x, y) {
-  const nextX = Math.round(x);
-  const nextY = Math.round(y);
+  const nextX = snapToBoardGrid(x);
+  const nextY = snapToBoardGrid(y);
   const offsetX = nextX - item.x;
   const offsetY = nextY - item.y;
   item.x = nextX;
@@ -210,8 +388,8 @@ function moveItemAndDescendants(item, x, y) {
   groupDescendantIds(item.id).forEach((id) => {
     const descendant = getEntityById(id);
     if (!descendant) return;
-    descendant.x = Math.round(descendant.x + offsetX);
-    descendant.y = Math.round(descendant.y + offsetY);
+    descendant.x = snapToBoardGrid(descendant.x + offsetX);
+    descendant.y = snapToBoardGrid(descendant.y + offsetY);
   });
 }
 
@@ -229,12 +407,19 @@ function ensureGroupCanContain(group, member) {
   if (!group?.organisation || !member) return false;
   const memberSize = itemBoardSize(member);
   const nextWidth = Math.min(
-    1200,
-    Math.max(group.groupWidth, memberSize.width + 24),
+    2400,
+    ceilToBoardGrid(
+      Math.max(group.groupWidth, memberSize.width + BOARD_GROUP_INSET * 2),
+    ),
   );
   const nextHeight = Math.min(
-    850,
-    Math.max(group.groupHeight, memberSize.height + 54),
+    1800,
+    ceilToBoardGrid(
+      Math.max(
+        group.groupHeight,
+        memberSize.height + BOARD_GROUP_HEADER_HEIGHT + BOARD_GROUP_INSET * 2,
+      ),
+    ),
   );
   let changed =
     nextWidth !== group.groupWidth ||
@@ -263,11 +448,17 @@ function minimumGroupSizeForMembers(group) {
     .reduce(
       (minimum, member) => {
         const size = itemBoardSize(member);
-        minimum.width = Math.max(minimum.width, size.width + 24);
-        minimum.height = Math.max(minimum.height, size.height + 54);
+        minimum.width = Math.max(
+          minimum.width,
+          size.width + BOARD_GROUP_INSET * 2,
+        );
+        minimum.height = Math.max(
+          minimum.height,
+          size.height + BOARD_GROUP_HEADER_HEIGHT + BOARD_GROUP_INSET * 2,
+        );
         return minimum;
       },
-      { width: 240, height: 170 },
+      { width: 240, height: 192 },
     );
 }
 
@@ -292,10 +483,11 @@ function containingGroupFor(item) {
           group.organisation &&
           group.id !== item.id &&
           !excluded.has(group.id) &&
-          centerX >= group.x + 12 &&
-          centerX <= group.x + group.groupWidth - 12 &&
-          centerY >= group.y + 42 &&
-          centerY <= group.y + group.groupHeight - 12,
+          centerX >= group.x + BOARD_GROUP_INSET &&
+          centerX <= group.x + group.groupWidth - BOARD_GROUP_INSET &&
+          centerY >=
+            group.y + BOARD_GROUP_HEADER_HEIGHT + BOARD_GROUP_INSET &&
+          centerY <= group.y + group.groupHeight - BOARD_GROUP_INSET,
       )
       .sort(
         (a, b) =>
@@ -348,7 +540,6 @@ function beginBoardDrag(event, card) {
   const startY = event.clientY;
   const originX = item.x;
   const originY = item.y;
-  const bounds = itemMovementBounds(item);
   const descendants = item.organisation
     ? [...groupDescendantIds(item.id)]
         .map((id) => getEntityById(id))
@@ -363,23 +554,33 @@ function beginBoardDrag(event, card) {
   card.setPointerCapture?.(event.pointerId);
 
   const move = (moveEvent) => {
-    const x = Math.max(
-      bounds.minX,
-      Math.min(bounds.maxX, originX + (moveEvent.clientX - startX) / zoom),
+    const rawX = snapToBoardGrid(
+      originX + (moveEvent.clientX - startX) / zoom,
     );
-    const y = Math.max(
-      bounds.minY,
-      Math.min(bounds.maxY, originY + (moveEvent.clientY - startY) / zoom),
+    const rawY = snapToBoardGrid(
+      originY + (moveEvent.clientY - startY) / zoom,
     );
-    item.x = Math.round(x);
-    item.y = Math.round(y);
+    let candidateParentId = item.parentGroupId || "";
+    if (!candidateParentId) {
+      item.x = rawX;
+      item.y = rawY;
+      candidateParentId = containingGroupFor(item)?.id || "";
+    }
+    const position = findNearestAvailableBoardPosition(
+      item,
+      rawX,
+      rawY,
+      candidateParentId,
+    );
+    item.x = position.x;
+    item.y = position.y;
     card.style.left = `${item.x}px`;
     card.style.top = `${item.y}px`;
     const offsetX = item.x - originX;
     const offsetY = item.y - originY;
     descendants.forEach((entry) => {
-      entry.item.x = Math.round(entry.x + offsetX);
-      entry.item.y = Math.round(entry.y + offsetY);
+      entry.item.x = snapToBoardGrid(entry.x + offsetX);
+      entry.item.y = snapToBoardGrid(entry.y + offsetY);
       const descendantCard = $(
         `[data-board-id="${CSS.escape(entry.item.id)}"]`,
         dom.boardCards,
@@ -400,6 +601,14 @@ function beginBoardDrag(event, card) {
     const membershipChanged = parentGroupFor(item)
       ? false
       : updateEntityGroupMembership(item);
+    const settledPosition = findNearestAvailableBoardPosition(
+      item,
+      item.x,
+      item.y,
+      item.parentGroupId,
+    );
+    moveItemAndDescendants(item, settledPosition.x, settledPosition.y);
+    normalizeBoardLayout();
     item.updatedAt = now();
     updateProjectTimestamp();
     renderBoard();
@@ -444,8 +653,8 @@ function beginGroupResize(event, handle) {
     height: item.groupHeight,
   };
   const minimumSize = minimumGroupSizeForMembers(item);
-  const minimumWidth = minimumSize.width;
-  const minimumHeight = minimumSize.height;
+  const minimumWidth = ceilToBoardGrid(minimumSize.width);
+  const minimumHeight = ceilToBoardGrid(minimumSize.height);
   const parent = parentGroupFor(item);
   card.classList.add("is-resizing");
   handle.setPointerCapture?.(event.pointerId);
@@ -458,24 +667,25 @@ function beginGroupResize(event, handle) {
     let width = origin.width;
     let height = origin.height;
     if (anchor.includes("e")) {
-      width = Math.min(1200, Math.max(minimumWidth, origin.width + dx));
+      width = Math.min(2400, Math.max(minimumWidth, origin.width + dx));
     }
     if (anchor.includes("s")) {
-      height = Math.min(850, Math.max(minimumHeight, origin.height + dy));
+      height = Math.min(1800, Math.max(minimumHeight, origin.height + dy));
     }
     if (anchor.includes("w")) {
-      width = Math.min(1200, Math.max(minimumWidth, origin.width - dx));
+      width = Math.min(2400, Math.max(minimumWidth, origin.width - dx));
       x = origin.x + origin.width - width;
     }
     if (anchor.includes("n")) {
-      height = Math.min(850, Math.max(minimumHeight, origin.height - dy));
+      height = Math.min(1800, Math.max(minimumHeight, origin.height - dy));
       y = origin.y + origin.height - height;
     }
     if (parent) {
-      const minX = parent.x + 12;
-      const minY = parent.y + 42;
-      const maxRight = parent.x + parent.groupWidth - 12;
-      const maxBottom = parent.y + parent.groupHeight - 12;
+      const minX = parent.x + BOARD_GROUP_INSET;
+      const minY =
+        parent.y + BOARD_GROUP_HEADER_HEIGHT + BOARD_GROUP_INSET;
+      const maxRight = parent.x + parent.groupWidth - BOARD_GROUP_INSET;
+      const maxBottom = parent.y + parent.groupHeight - BOARD_GROUP_INSET;
       if (x < minX) {
         width -= minX - x;
         x = minX;
@@ -487,10 +697,10 @@ function beginGroupResize(event, handle) {
       width = Math.min(width, maxRight - x);
       height = Math.min(height, maxBottom - y);
     }
-    item.x = Math.round(x);
-    item.y = Math.round(y);
-    item.groupWidth = Math.round(width);
-    item.groupHeight = Math.round(height);
+    item.x = snapToBoardGrid(x);
+    item.y = snapToBoardGrid(y);
+    item.groupWidth = ceilToBoardGrid(width);
+    item.groupHeight = ceilToBoardGrid(height);
     card.style.left = `${item.x}px`;
     card.style.top = `${item.y}px`;
     card.style.width = `${item.groupWidth}px`;
@@ -504,6 +714,7 @@ function beginGroupResize(event, handle) {
     window.removeEventListener("pointerup", end);
     keepItemInsideParent(item);
     keepGroupMembersContained(item);
+    normalizeBoardLayout();
     item.updatedAt = now();
     updateProjectTimestamp();
     renderBoard();

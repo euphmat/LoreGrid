@@ -8,13 +8,22 @@
   height: 100%;
   overflow: auto;
   background-color: var(--bg);
-  background-image: radial-gradient(var(--line-strong) 0.7px, transparent 0.7px);
-  background-size: 18px 18px;
   outline: 0;
   cursor: grab;
   touch-action: none;
   scrollbar-color: color-mix(in srgb, var(--accent) 72%, var(--ink-muted)) var(--surface-2);
   scrollbar-width: thin;
+}
+
+.board-canvas {
+  position: relative;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to right, color-mix(in srgb, var(--line-strong) 68%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line-strong) 68%, transparent) 1px, transparent 1px);
+  background-position: 0 0;
+  background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
 }
 
 .board-viewport::-webkit-scrollbar {
@@ -46,7 +55,6 @@
 }
 
 .board-canvas {
-  position: relative;
   transform-origin: 0 0;
 }
 
@@ -85,11 +93,21 @@
   cursor: pointer;
 }
 
+.relation-line-clearance {
+  fill: none;
+  stroke: var(--bg);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 7;
+  pointer-events: none;
+}
+
 .relation-line {
   fill: none;
   stroke: color-mix(in srgb, var(--accent) 82%, var(--ink));
-  stroke-dasharray: 7 4;
+  stroke-dasharray: none;
   stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-width: 1.8;
   pointer-events: none;
   opacity: 0.88;
@@ -319,7 +337,7 @@
   position: absolute;
   z-index: calc(1 + var(--group-depth));
   min-width: 240px;
-  min-height: 170px;
+  min-height: 192px;
   overflow: visible;
   border: 1px solid color-mix(in srgb, var(--group-color) 72%, var(--line-strong));
   border-radius: 12px;
@@ -332,7 +350,7 @@
 
 .board-group-header {
   display: flex;
-  height: 38px;
+  height: 48px;
   align-items: center;
   gap: 8px;
   padding: 0 12px;
@@ -443,7 +461,7 @@
 }
 
 .board-group .connector-handle.group-relation-connector {
-  top: 19px;
+  top: 24px;
   right: -5px;
   transform: translateY(-50%);
 }
@@ -533,8 +551,8 @@
   position: absolute;
   z-index: 20;
   display: flex;
-  width: 188px;
-  min-height: 104px;
+  width: 192px;
+  height: 144px;
   flex-direction: column;
   overflow: visible;
   border: 1px solid var(--line-strong);
@@ -574,7 +592,8 @@
 
 .board-card-image {
   width: 100%;
-  height: 112px;
+  height: 144px;
+  flex: 0 0 144px;
   border-radius: 8px 8px 0 0;
   background: color-mix(in srgb, var(--entity-color) 8%, var(--surface-2));
   object-fit: contain;
@@ -584,7 +603,9 @@
 
 .board-card-body {
   flex: 1;
+  min-height: 0;
   padding: 10px 11px;
+  overflow: hidden;
 }
 
 .board-card-status {
@@ -610,6 +631,10 @@
   line-height: 1.65;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .board-card-tags {
@@ -617,6 +642,10 @@
   flex-wrap: wrap;
   gap: 3px;
   margin-top: 8px;
+}
+
+.board-card.has-image {
+  height: 288px;
 }
 
 .board-card-tags span {

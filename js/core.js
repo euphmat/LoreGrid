@@ -11,6 +11,13 @@ const BOARD_MIN_WIDTH = 1800;
 const BOARD_MIN_HEIGHT = 1050;
 const BOARD_EDGE_PADDING_X = 900;
 const BOARD_EDGE_PADDING_Y = 650;
+const BOARD_GRID_SIZE = 24;
+const BOARD_GRID_GAP = 24;
+const BOARD_CARD_WIDTH = 192;
+const BOARD_CARD_HEIGHT = 144;
+const BOARD_CARD_IMAGE_HEIGHT = 288;
+const BOARD_GROUP_HEADER_HEIGHT = 48;
+const BOARD_GROUP_INSET = 24;
 const COLOR_PALETTE = [
   "#F8F6EF", "#E8E3D8", "#D6D0C4", "#B8B2A8",
   "#F3C6C0", "#E98F86", "#CF5E55", "#923E3A",
@@ -41,6 +48,10 @@ const normalizePaletteColor = (value) => {
   const color = normalizeColor(value);
   return COLOR_PALETTE.includes(color) ? color : "#74ADD1";
 };
+const snapToBoardGrid = (value) =>
+  Math.round((Number(value) || 0) / BOARD_GRID_SIZE) * BOARD_GRID_SIZE;
+const ceilToBoardGrid = (value) =>
+  Math.ceil((Number(value) || 0) / BOARD_GRID_SIZE) * BOARD_GRID_SIZE;
 
 function normalizeListOptions(options) {
   if (!Array.isArray(options)) return [];
@@ -87,11 +98,11 @@ const entity = (data) => ({
   organisation: data.organisation === true,
   groupColor: normalizePaletteColor(data.groupColor || "#74ADD1"),
   groupWidth: Number.isFinite(data.groupWidth)
-    ? Math.min(1200, Math.max(240, data.groupWidth))
+    ? Math.min(2400, Math.max(240, ceilToBoardGrid(data.groupWidth)))
     : 480,
   groupHeight: Number.isFinite(data.groupHeight)
-    ? Math.min(850, Math.max(170, data.groupHeight))
-    : 300,
+    ? Math.min(1800, Math.max(192, ceilToBoardGrid(data.groupHeight)))
+    : 312,
   parentGroupId: typeof data.parentGroupId === "string" ? data.parentGroupId : "",
   links: Array.isArray(data.links)
     ? data.links
@@ -106,8 +117,8 @@ const entity = (data) => ({
           targetAnchor: link.targetAnchor || "",
         }))
     : [],
-  x: Number.isFinite(data.x) ? data.x : 100,
-  y: Number.isFinite(data.y) ? data.y : 100,
+  x: snapToBoardGrid(Number.isFinite(data.x) ? data.x : 96),
+  y: snapToBoardGrid(Number.isFinite(data.y) ? data.y : 96),
   createdAt: data.createdAt || now(),
   updatedAt: data.updatedAt || now(),
 });
